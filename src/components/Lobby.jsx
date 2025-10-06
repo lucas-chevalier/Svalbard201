@@ -1,8 +1,7 @@
-// src/components/Lobby.jsx
 import React, { useState } from "react";
 import { db } from "../firebase";
 import { ref, set, push } from "firebase/database";
-import { Beaker, Zap, Droplets } from "lucide-react"; // Fallout-style vector icons
+import { Beaker, Zap, Droplets } from "lucide-react";
 
 const roles = [
   { name: "Hydrologue", icon: <Droplets size={20} />, color: "#00eaff" },
@@ -58,28 +57,24 @@ export default function Lobby({ onJoin }) {
 
   return (
     <div className="lobby fallout-terminal">
-      <div className="vault-title">🧬 svalbard201</div>
+      <div className="vault-title">🧬 Svalbard201</div>
       <p className="subtitle">Connexion au terminal scientifique...</p>
 
-      <div className="input-group">
-        <label>Identifiant opérateur :</label>
-        <input
-          placeholder="Ton pseudo"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-      </div>
+      <input
+        placeholder="Ton pseudo"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+      />
+      <button onClick={createGame}>Créer une mission</button>
 
-      <div className="button-group">
-        <button onClick={createGame}>Créer une mission</button>
-        <div className="divider">— ou —</div>
-        <input
-          placeholder="Code (ex: GV1234)"
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-        />
-        <button onClick={joinGame}>Rejoindre</button>
-      </div>
+      <div className="divider">— ou —</div>
+
+      <input
+        placeholder="Code (ex: GV1234)"
+        value={code}
+        onChange={(e) => setCode(e.target.value)}
+      />
+      <button onClick={joinGame}>Rejoindre</button>
 
       <div className="roles-info">
         <h4>Rôles disponibles :</h4>
@@ -94,3 +89,4 @@ export default function Lobby({ onJoin }) {
     </div>
   );
 }
+// src/components/Lobby.jsx
