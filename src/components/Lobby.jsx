@@ -72,7 +72,7 @@ export default function Lobby({ onJoin }) {
       puzzles: { 
         water: { 
           grid: waterGrid, 
-          rotations: waterGrid.map(row => row.map(()=>0)) 
+          rotations: waterGrid.map(row => row.map(() => Math.floor(Math.random() * 4))) 
         } 
       },
       miniGameStatus: { 
