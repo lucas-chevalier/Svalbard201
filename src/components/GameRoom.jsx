@@ -5,6 +5,7 @@ import Chat from "./Chat";
 import Timer from "./Timer";
 import PuzzleWater from "./PuzzleWater";
 import Grainotheque from "./Grainotheque"; // ✅ ton composant du mini-jeu
+import PuzzlePompe from "./PuzzlePompe";
 
 function Room({ title, bg, children }) {
   return (
@@ -76,7 +77,7 @@ export default function GameRoom({ sessionId, playerId }) {
 
   // ✅ Ajout de Grainotheque dans les mini-jeux disponibles
   const miniGames = {
-    "Salle de traitement (eau)": PuzzleWater,
+    "Salle de traitement (eau)": PuzzlePompe,
     "Grainothèque": Grainotheque,
   };
 
@@ -133,6 +134,7 @@ export default function GameRoom({ sessionId, playerId }) {
             <MiniGame
               sessionId={sessionId}
               roomName={currentRoom.toLowerCase()}
+              playerRole={session.players[playerId]?.role}
               onWin={() => handleWin(currentRoom)}
             />
           )}
