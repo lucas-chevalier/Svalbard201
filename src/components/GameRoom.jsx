@@ -1,75 +1,89 @@
-import React, { useEffect, useState } from "react";
-import { ref, onValue, update, push } from "firebase/database";
-import { db } from "../firebase";
+import React,{useState,useEffect} from "react";
+import {ref,onValue,update} from "firebase/database";
+import {db} from "../firebase";
 import Chat from "./Chat";
 import Timer from "./Timer";
-import PuzzleEnergy from "./PuzzleEnergy";
-import PuzzleWater from "./PuzzleWater"; // Mini-jeu réseau d'eau
+import PuzzleWater from "./PuzzleWater";
 
-export default function GameRoom({ sessionId, playerId }) {
-  const [session, setSession] = useState(null);
-  const [currentRoom, setCurrentRoom] = useState("lobby"); // lobby, waterPuzzle, etc.
-  const sessionRef = ref(db, `sessions/${sessionId}`);
+function Room({title,bg,children}){
+  return <div className="room fade-in" style={{backgroundImage:`url(${bg})`, backgroundSize:"cover",backgroundPosition:"center",minHeight:"100vh",padding:20,color:"#00ff66",position:"relative"}}>
+    <h2>{title}</h2>{children}
+  </div>;
+}
 
-  useEffect(() => {
-    const unsub = onValue(sessionRef, (snap) => setSession(snap.val()));
-    return () => unsub();
-  }, []);
+function PlayerStatus({players,host,miniGameStatus}){
+  return <div className="player-status">
+    <h4>👥 Équipe connectée</h4>
+    <ul>
+      {Object.values(players||{}).map(p=>(
+        <li key={p.id}>
+          <span style={{color:p.color||"#0f0"}}>{p.name}</span> — <span>{p.role||"Aucun rôle"}</span>
+          {p.id===host && <span>★ Chef</span>}
+          {miniGameStatus[p.currentRoom] && <span>✔</span>}
+        </li>
+      ))}
+    </ul>
+  </div>;
+}
 
-  const solveEnergy = async () => {
-    await update(ref(db, `sessions/${sessionId}/puzzles`), { energy: "solved" });
-    await push(ref(db, `sessions/${sessionId}/chat`), {
-      sender: "SYSTEM",
-      text: `${session.players[playerId].name} a réactivé le module énergie`
-    });
-  };
+export default function GameRoom({sessionId,playerId}){
+  const [session,setSession]=useState(null);
+  const [currentRoom,setCurrentRoom]=useState("controlRoom");
+  const [miniGameStatus,setMiniGameStatus]=useState({});
+  const sessionRef=ref(db,`sessions/${sessionId}`);
+  const miniGameRef=ref(db,`sessions/${sessionId}/miniGameStatus`);
 
-  if (!session) return <p>Chargement...</p>;
+  useEffect(()=>{
+    const unsubSession=onValue(sessionRef,snap=>setSession(snap.val()));
+    const unsubMini=onValue(miniGameRef,snap=>{const s=snap.val(); if(s) setMiniGameStatus(s);});
+    return ()=>{unsubSession();unsubMini();}
+  },[sessionRef,miniGameRef]);
 
-  // Liste des salles accessibles
-  const rooms = [
-    "Salle de contrôle",
-    "Système de survie",
-    "Débarras",
-    "Biosphère",
-    "Grainothèque",
-    "Centrale électrique",
-    "Salle de traitement (eau)"
+  if(!session) return <p>Chargement...</p>;
+
+  const rooms=[
+    {name:"Système de survie",bg:"/backgrounds/survie.jpg"},
+    {name:"Débarras",bg:"/backgrounds/debarras.jpg"},
+    {name:"Biosphère",bg:"/backgrounds/biosphere.jpg"},
+    {name:"Grainothèque",bg:"/backgrounds/grainotheque.jpg"},
+    {name:"Centrale électrique",bg:"/backgrounds/centrale.jpg"},
+    {name:"Salle de traitement (eau)",bg:"/backgrounds/water.jpg"}
   ];
 
-  // Gestion click sur salle
-  const enterRoom = (room) => {
-    if(room === "Salle de traitement (eau)") setCurrentRoom("waterPuzzle");
-    else alert(`${room} pas encore implémentée`);
+  const miniGames={"Salle de traitement (eau)":PuzzleWater};
+
+  const handleWin=(roomName)=>{
+    const updated={...miniGameStatus,[roomName]:true};
+    update(sessionRef,{miniGameStatus:updated});
+    alert(`Puzzle de "${roomName}" terminé !`);
   };
 
-  // Si mini-jeu actif
-  if(currentRoom === "waterPuzzle") {
-    return (
-      <div className="room">
-        <h2>Salle de traitement (eau)</h2>
-        <Timer endTime={session.timer} />
-        <PuzzleWater onWin={() => alert("Puzzle terminé !")} />
-        <button onClick={() => setCurrentRoom("lobby")}>Retour au lobby</button>
-        <Chat sessionId={sessionId} playerName={session.players[playerId]?.name || "??"} />
-      </div>
-    );
-  }
+  const roomInfo=rooms.find(r=>r.name===currentRoom);
+  const MiniGame=miniGames[currentRoom];
 
-  // Vue lobby / plan des salles
-  return (
-    <div className="room">
-      <h2>Session {sessionId}</h2>
-      <Timer endTime={session.timer} />
-      <PuzzleEnergy status={session.puzzles.energy} onSolve={solveEnergy} />
-      <div className="map-grid" style={{margin: '16px 0'}}>
-        {rooms.map((room, i) => (
-          <div key={i} className="room" onClick={() => enterRoom(room)}>
-            {room}
-          </div>
-        ))}
-      </div>
-      <Chat sessionId={sessionId} playerName={session.players[playerId]?.name || "??"} />
-    </div>
-  );
+  return <>
+    {currentRoom==="controlRoom"?(
+      <Room key={currentRoom} title="Salle de contrôle" bg="/backgrounds/controlRoom.jpg">
+        <Timer endTime={session.timer}/>
+        <PlayerStatus players={session.players} host={session.host} miniGameStatus={miniGameStatus}/>
+        <div className="map-grid">
+          {rooms.map(room=>(
+            <div key={room.name} className={`room-tile ${miniGameStatus[room.name]?"completed":""}`} onClick={()=>setCurrentRoom(room.name)}>
+              <img src={room.bg} alt={room.name} className="tile-image"/>
+              <div className="tile-label">{room.name}</div>
+              {miniGameStatus[room.name] && <span className="mini-complete">✔</span>}
+            </div>
+          ))}
+        </div>
+        <Chat sessionId={sessionId} playerId={playerId} playerName={session.players[playerId]?.name||"??"}/>
+      </Room>
+    ):(
+      <Room key={currentRoom} title={currentRoom} bg={roomInfo.bg}>
+        <Timer endTime={session.timer}/>
+        {MiniGame && <MiniGame sessionId={sessionId} roomName="water" onWin={()=>handleWin(currentRoom)}/>}
+        <button className="return-lobby-btn" onClick={()=>setCurrentRoom("controlRoom")}>Retour à la salle de contrôle</button>
+        <Chat sessionId={sessionId} playerId={playerId} playerName={session.players[playerId]?.name||"??"}/>
+      </Room>
+    )}
+  </>;
 }

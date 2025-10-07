@@ -5,7 +5,6 @@ export default function Map() {
     <div className="map-container fallout-terminal">
       <h2>📡 Plan du complexe Svalbard201</h2>
       <div className="map-grid">
-        <div className="room control">Salle de contrôle</div>
         <div className="room survival">Système de survie</div>
         <div className="room storage">Débarras</div>
         <div className="room biosphere">Biosphère</div>

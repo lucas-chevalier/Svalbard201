@@ -39,4 +39,3 @@ export default function App() {
 
   return null;
 }
-// src/App.jsx

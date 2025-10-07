@@ -1,87 +1,198 @@
 import React, { useRef, useEffect, useState } from "react";
-import spriteSrc from "./bluerpipe-sheet.png"; // importe la spritesheet
+import { ref, onValue, set } from "firebase/database";
+import { db } from "../firebase";
 
-export default function PuzzleWater({ size = 10 }) {
+export default function PuzzleWater({ sessionId, roomName, size = 8, onWin }) {
   const canvasRef = useRef(null);
-  const [imgLoaded, setImgLoaded] = useState(false);
-  const [img] = useState(() => new Image());
-
+  const [img, setImg] = useState(null);
   const [grid, setGrid] = useState([]);
+  const [rotations, setRotations] = useState([]);
+  const [won, setWon] = useState(false);
+  const [alreadyLoaded, setAlreadyLoaded] = useState(false);
   const TILE = 64;
 
+  const NBIT = 1, EBIT = 2, SBIT = 4, WBIT = 8;
+  const DIRS = [
+    { dx: 0, dy: -1, bit: NBIT, opp: SBIT },
+    { dx: 1, dy: 0, bit: EBIT, opp: WBIT },
+    { dx: 0, dy: 1, bit: SBIT, opp: NBIT },
+    { dx: -1, dy: 0, bit: WBIT, opp: EBIT },
+  ];
+  const inBounds = (x, y) => x >= 0 && y >= 0 && x < size && y < size;
+  const key = (x, y) => `${x},${y}`;
+
+  const TILEMAP = {
+    straight: { col: 4, row: 0 },
+    corner: { col: 3, row: 1 },
+    cross: { col: 1, row: 2 },
+    tee: { col: 0, row: 2 },
+    cap: { col: 2, row: 2 },
+    source: { col: 0, row: 0 },
+    sink: { col: 2, row: 1 },
+    blank: { col: 4, row: 5 },
+  };
+  const getSpriteRect = (base) => {
+    const entry = TILEMAP[base] || TILEMAP.blank;
+    return { sx: entry.col * TILE, sy: entry.row * TILE };
+  };
+
+  // Charger image depuis public/assets/
   useEffect(() => {
-    img.src = spriteSrc;
-    img.onload = () => setImgLoaded(true);
-  }, [img]);
+    const image = new Image();
+    image.src = "/assets/bluerpipe-sheet.png";
+    image.onload = () => setImg(image);
+  }, []);
+
+  // Charger grille + rotations depuis Firebase
+  useEffect(() => {
+    if (alreadyLoaded) return;
+    const puzzleRef = ref(db, `sessions/${sessionId}/puzzles/${roomName}`);
+    const unsub = onValue(puzzleRef, (snap) => {
+      const data = snap.val();
+      if (!data) return;
+
+      setGrid(data.grid);
+      setRotations(data.rotations);
+      setAlreadyLoaded(true);
+      setWon(false);
+    });
+    return () => unsub();
+  }, [sessionId, roomName, alreadyLoaded]);
+
+  const handleClick = (x, y) => {
+    if (won) return;
+    const newRot = (rotations[y][x] + 1) % 4;
+    setRotations((prev) => {
+      const updated = prev.map(row => [...row]);
+      updated[y][x] = newRot;
+      // Sauvegarde rotation dans Firebase
+      set(ref(db, `sessions/${sessionId}/puzzles/${roomName}/rotations/${y}/${x}`), newRot);
+      return updated;
+    });
+  };
+
+  const openMaskAfterRotation = (cell, rot) => {
+    let m = cell.open;
+    for (let i = 0; i < rot; i++) {
+      let r = 0;
+      if (m & NBIT) r |= EBIT;
+      if (m & EBIT) r |= SBIT;
+      if (m & SBIT) r |= WBIT;
+      if (m & WBIT) r |= NBIT;
+      m = r;
+    }
+    return m;
+  };
+
+  const computePowered = (state, rots) => {
+    let sx = 0, sy = 0;
+    outer: for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        if (state[y][x].kind === "source") { sx = x; sy = y; break outer; }
+      }
+    }
+    const seen = new Set();
+    const stack = [{ x: sx, y: sy }];
+
+    while (stack.length) {
+      const { x, y } = stack.pop();
+      const k = key(x, y);
+      if (seen.has(k)) continue;
+      seen.add(k);
+
+      const m = openMaskAfterRotation(state[y][x], rots[y][x]);
+      for (const d of DIRS) {
+        const nx = x + d.dx, ny = y + d.dy;
+        if (!inBounds(nx, ny)) continue;
+        const m2 = openMaskAfterRotation(state[ny][nx], rots[ny][nx]);
+        if ((m & d.bit) && (m2 & d.opp)) {
+          const kk = key(nx, ny);
+          if (!seen.has(kk)) stack.push({ x: nx, y: ny });
+        }
+      }
+    }
+    return seen;
+  };
 
   useEffect(() => {
-    if (!imgLoaded) return;
-
-    // Génération d'une grille simple pour test
-    const newGrid = Array.from({ length: size }, () =>
-      Array.from({ length: size }, () => ({
-        base: "straight",
-        rot: Math.floor(Math.random() * 4),
-      }))
-    );
-    setGrid(newGrid);
-  }, [imgLoaded, size]);
-
-  useEffect(() => {
-    if (!imgLoaded || !grid.length) return;
+    if (!img || !grid.length || !rotations.length || !alreadyLoaded) return;
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
-    const cellPix = Math.floor(canvas.width / size);
+    const cellPix = canvas.width / size;
+
+    const powered = computePowered(grid, rotations);
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    grid.forEach((row, y) => {
-      row.forEach((cell, x) => {
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
         const px = x * cellPix;
         const py = y * cellPix;
+        const cell = grid[y][x];
+        const rot = rotations[y][x];
 
-        // Fond
         ctx.fillStyle = "#0a1130";
         ctx.fillRect(px, py, cellPix, cellPix);
         ctx.strokeStyle = "#17204a";
         ctx.strokeRect(px + 0.5, py + 0.5, cellPix - 1, cellPix - 1);
 
-        // Sprite
-        const spriteCoords = getSpriteRect(cell.base);
-        ctx.save();
-        ctx.translate(px + cellPix / 2, py + cellPix / 2);
-        ctx.rotate((cell.rot % 4) * Math.PI / 2);
-        ctx.drawImage(
-          img,
-          spriteCoords.sx,
-          spriteCoords.sy,
-          TILE,
-          TILE,
-          -cellPix / 2,
-          -cellPix / 2,
-          cellPix,
-          cellPix
+        const { sx, sy } = getSpriteRect(
+          cell.kind === "source" ? "source" :
+          cell.kind === "sink" ? "cap" : cell.base
         );
+
+        const cx = px + cellPix / 2;
+        const cy = py + cellPix / 2;
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(rot * (Math.PI / 2));
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(img, sx, sy, 64, 64, -cellPix/2, -cellPix/2, cellPix, cellPix);
         ctx.restore();
-      });
-    });
-  }, [imgLoaded, grid, size, img]);
 
-  const getSpriteRect = (base) => {
-    const TILEMAP = {
-      straight: { col: 6, row: 6 },
-      corner: { col: 7, row: 6 },
-      tee: { col: 8, row: 6 },
-      cross: { col: 6, row: 7 },
-      cap: { col: 7, row: 7 },
-      source: { col: 8, row: 7 },
-      sink: { col: 6, row: 8 },
-      blank: { col: 7, row: 8 },
+        if (powered.has(key(x, y))) {
+          ctx.save();
+          ctx.globalAlpha = 0.35;
+          ctx.globalCompositeOperation = "lighter";
+          ctx.fillStyle = "#6feaff";
+          ctx.beginPath();
+          ctx.arc(cx, cy, Math.max(12, cellPix*0.45), 0, Math.PI*2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+    }
+
+    if (!won && powered.size === size*size) {
+      setWon(true);
+      onWin?.();
+    }
+  }, [img, grid, rotations, won, size, onWin, alreadyLoaded]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const handleClickCanvas = (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = Math.floor(((e.clientX - rect.left)/canvas.width) * size);
+      const y = Math.floor(((e.clientY - rect.top)/canvas.height) * size);
+      if (inBounds(x, y)) handleClick(x, y);
     };
-    const entry = TILEMAP[base] || TILEMAP.blank;
-    return { sx: entry.col * TILE, sy: entry.row * TILE };
-  };
+    canvas.addEventListener("click", handleClickCanvas);
+    return () => canvas.removeEventListener("click", handleClickCanvas);
+  }, [size, rotations, won]);
 
-  return <canvas ref={canvasRef} width={600} height={600} />;
+  if (!img || !grid.length || !rotations.length) return <p>Chargement du puzzle...</p>;
+
+  return (
+    <div style={{ display:"grid", placeItems:"center", marginTop:20, position:"relative" }}>
+      <canvas
+        ref={canvasRef}
+        width={600}
+        height={600}
+        style={{ background:"#0a1026", border:"2px solid #1e2550", imageRendering:"pixelated", cursor: won?"default":"pointer", borderRadius:12, boxShadow:"0 10px 30px rgba(0,0,0,.35)" }}
+      />
+    </div>
+  );
 }
