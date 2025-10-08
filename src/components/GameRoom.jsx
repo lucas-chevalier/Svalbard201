@@ -5,6 +5,7 @@ import Chat from "./Chat";
 import Timer from "./Timer";
 import Grainotheque from "./Grainotheque";
 import PuzzlePompe from "./PuzzlePompe";
+import PuzzleEnergy from "./PuzzleEnergy";
 
 function Room({ title, bg, children }) {
   return (
@@ -47,6 +48,8 @@ function PlayerStatus({ players, host, miniGameStatus }) {
 export default function GameRoom({ sessionId, playerId }) {
   const [session, setSession] = useState(null);
   const [currentRoom, setCurrentRoom] = useState("controlRoom");
+  // Pour reset les logs de la pompe quand on quitte la salle
+  const pompeRef = ref(db, `sessions/${sessionId}/pompe`);
   const [miniGameStatus, setMiniGameStatus] = useState({});
   const [roomsOrder, setRoomsOrder] = useState([]);
 
@@ -97,6 +100,7 @@ export default function GameRoom({ sessionId, playerId }) {
   const miniGames = {
     "Grainothèque": Grainotheque,
     "Salle de traitement (eau)": PuzzlePompe,
+    "Centrale électrique": PuzzleEnergy,
   };
 
   // --- Gestion de la validation d'une salle
@@ -109,10 +113,10 @@ export default function GameRoom({ sessionId, playerId }) {
   const currentRoomInfo = roomsOrder.find((r) => r.name === currentRoom);
   const MiniGame = miniGames[currentRoom];
 
-  // --- Détermination de la salle suivante autorisée
-  const completedRooms = Object.keys(miniGameStatus).filter((r) => miniGameStatus[r]);
-  const unlockedIndex = completedRooms.length; // ex: 0 → première salle débloquée
-  const unlockedRoomName = roomsOrder[unlockedIndex]?.name;
+  // Fonction pour quitter une salle
+  const handleLeaveRoom = () => {
+    setCurrentRoom("controlRoom");
+  };
 
   return (
     <>
@@ -196,7 +200,7 @@ export default function GameRoom({ sessionId, playerId }) {
           )}
           <button
             className="return-lobby-btn"
-            onClick={() => setCurrentRoom("controlRoom")}
+            onClick={handleLeaveRoom}
           >
             Retour à la salle de contrôle
           </button>
