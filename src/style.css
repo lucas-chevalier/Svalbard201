@@ -260,29 +260,38 @@ body {
 /* Grille des salles */
 .map-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 15px;
+  grid-template-columns: repeat(3, 1fr); /* 3 colonnes pour 2 lignes */
+  gap: 24px; /* plus d'espace entre les tuiles */
   margin-top: 20px;
+  max-width: 900px; /* grille plus large */
+  margin-right: 360px; /* espace pour le chat */
+  margin-left: 40px;   /* espace à gauche */
+  min-height: 480px;   /* assure 2 lignes visibles */
 }
 
 /* Chaque salle */
 .room-tile {
   position: relative;
   border: 2px solid #00ff66;
-  border-radius: 12px;
-  box-shadow: 0 0 12px #00ff66;
+  border-radius: 16px;
+  box-shadow: 0 0 18px #00ff66;
   cursor: pointer;
-  overflow: hidden; /* <- important */
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
   opacity: 0.3;
   transition: opacity 0.3s ease, transform 0.3s ease;
-
+  width: 260px;   /* largeur fixe pour toutes les tuiles */
+  height: 180px;  /* hauteur fixe pour toutes les tuiles */
+  background: rgba(0, 30, 0, 0.5);
 }
 
 .room-tile:hover {
   opacity: 1;
+  background-color: rgba(0, 50, 0, 0.85);
+  box-shadow: 0 0 24px #00ff66, 0 0 30px rgba(0, 255, 102, 0.3);
+  transform: scale(1.05);
 }
 
 .room-tile.locked {

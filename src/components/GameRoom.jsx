@@ -85,7 +85,7 @@ export default function GameRoom({ sessionId, playerId }) {
 
   const defaultOrder = [
     { name: "Grainothèque", bg: "/backgrounds/grainotheque.png" },
-  { name: "Pompe hydraulique", bg: "/backgrounds/water.jpg" },
+    { name: "Pompe hydraulique", bg: "/backgrounds/water.jpg" },
     { name: "Centrale électrique", bg: "/backgrounds/centrale.jpg" },
     { name: "Biosphère", bg: "/backgrounds/biosphereB.png" },
     { name: "Débarras", bg: "/backgrounds/debarras.jpg" },
@@ -108,7 +108,7 @@ export default function GameRoom({ sessionId, playerId }) {
   // --- Liste des mini-jeux disponibles
   const miniGames = {
     "Grainothèque": Grainotheque,
-  "Pompe hydraulique": PuzzlePompe,
+    "Pompe hydraulique": PuzzlePompe,
     "Centrale électrique": PuzzleEnergy,
     "Biosphère": Biosphere,
   };
@@ -155,7 +155,14 @@ export default function GameRoom({ sessionId, playerId }) {
           </div>
           <div
             className="map-grid"
-            style={{ opacity: 0.6, pointerEvents: "auto", transition: "opacity 0.3s ease" }}
+            style={{
+              pointerEvents: "auto",
+              gridTemplateColumns: "repeat(3, 1fr)",
+              maxWidth: "900px",
+              marginRight: "360px", // espace réservé pour le chat
+              marginLeft: "40px",
+              marginTop: "20px",
+            }}
           >
             {roomsOrder.map((room, index) => {
               const isUnlocked =
@@ -184,7 +191,6 @@ export default function GameRoom({ sessionId, playerId }) {
               );
             })}
           </div>
-
           <Chat
             sessionId={sessionId}
             playerId={playerId}
@@ -193,18 +199,20 @@ export default function GameRoom({ sessionId, playerId }) {
         </Room>
       ) : (
         <Room key={currentRoom} title={currentRoom} bg={currentRoomInfo?.bg}>
-          <Timer endTime={session.timer} />
-          {MiniGame && (
-            <MiniGame
-              sessionId={sessionId}
-              roomName={currentRoom.toLowerCase()}
-              playerRole={session.players[playerId]?.role}
-              onWin={() => handleWin(currentRoom)}
-            />
-          )}
-          <button className="return-lobby-btn" onClick={handleLeaveRoom}>
-            Retour à la salle de contrôle
-          </button>
+          <div style={{ marginRight: "360px" }}>
+            <Timer endTime={session.timer} />
+            {MiniGame && (
+              <MiniGame
+                sessionId={sessionId}
+                roomName={currentRoom.toLowerCase()}
+                playerRole={session.players[playerId]?.role}
+                onWin={() => handleWin(currentRoom)}
+              />
+            )}
+            <button className="return-lobby-btn" onClick={handleLeaveRoom}>
+              Retour à la salle de contrôle
+            </button>
+          </div>
           <Chat
             sessionId={sessionId}
             playerId={playerId}
