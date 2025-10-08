@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { db } from "../firebase";
 import { ref, onValue, update, set } from "firebase/database";
 
-export default function PuzzleEnergy({ sessionId, playerRole, onSolve }) {
+export default function PuzzleEnergy({ sessionId, playerRole, onWin }) {
   const [state, setState] = useState(null);
   const [logs, setLogs] = useState([]);
   const [hintVisible, setHintVisible] = useState(false);
@@ -34,11 +34,19 @@ export default function PuzzleEnergy({ sessionId, playerRole, onSolve }) {
       const v = snap.val();
       if (!v) {
         const defaultState = {
-          power: { heat: 0, pump: 0, serre: 0, lab: 0 },
+          power: { heat: 0, pump: 0, serre: 0 },
           total: 0,
           blackout: true,
           solved: false,
           logs: [],
+          config: { 
+            voltage: 0, 
+            modules: { 
+              heat: { R: 1, connected: true }, 
+              pump: { R: 1, connected: true }, 
+              serre: { R: 1, connected: true }
+            } 
+          },
         };
         set(r, defaultState);
         setState(defaultState);
@@ -85,26 +93,34 @@ export default function PuzzleEnergy({ sessionId, playerRole, onSolve }) {
     return { power, total };
   };
 
-  const updateConfig = (newCfgPartial, actor) => {
+  const updateConfig = (newCfgPartial, actor, shouldLog = false) => {
     if (!state) return;
     const cfg = { ...(state.config || {}), ...newCfgPartial };
     if (newCfgPartial.modules) {
-      cfg.modules = { ...(state.config?.modules || {}), ...newCfgPartial.modules };
+      cfg.modules = { 
+        ...(state.config?.modules || {}), 
+        ...Object.keys(newCfgPartial.modules).reduce((acc, key) => {
+          acc[key] = { ...(state.config?.modules?.[key] || {}), ...newCfgPartial.modules[key] };
+          return acc;
+        }, {})
+      };
     }
     const { power: newPower, total } = computePowersFromConfig(cfg);
     const updates = { config: cfg, power: newPower, total };
     if (state.blackout) updates.blackout = false;
     update(ref(db, energyRefPath), updates);
     markActivity();
-    const vstr = Number(cfg.voltage || 0).toFixed(1);
-    const who = actor || 'Énergéticien';
-    pushLog(`${who}: config modifiée (V=${vstr}V, total=${total} kW)`);
+    if (shouldLog) {
+      const vstr = Number(cfg.voltage || 0).toFixed(1);
+      const who = actor || 'Énergéticien';
+      pushLog(`${who}: config modifiée (V=${vstr}V, total=${total} kW)`);
+    }
   };
 
   const triggerBlackout = () => {
     if (!state) return;
     const reset = { 
-      power: { heat: 0, pump: 0, serre: 0, lab: 0 }, 
+      power: { heat: 0, pump: 0, serre: 0 }, 
       total: 0, 
       blackout: true, 
       config: { ...(state.config || {}), voltage: 0 } 
@@ -115,7 +131,20 @@ export default function PuzzleEnergy({ sessionId, playerRole, onSolve }) {
 
   const restartSystem = () => {
     if (!state) return;
-    update(ref(db, energyRefPath), { blackout: false });
+    const resetConfig = {
+      voltage: 0,
+      modules: {
+        heat: { R: 1, connected: true },
+        pump: { R: 1, connected: true },
+        serre: { R: 1, connected: true }
+      }
+    };
+    update(ref(db, energyRefPath), { 
+      blackout: false, 
+      config: resetConfig,
+      power: { heat: 0, pump: 0, serre: 0 },
+      total: 0
+    });
     pushLog("Remise en marche : l'Énergéticien a relancé le système");
     markActivity();
   };
@@ -130,15 +159,14 @@ export default function PuzzleEnergy({ sessionId, playerRole, onSolve }) {
     const heat = Number(state.power?.heat || 0);
     const pump = Number(state.power?.pump || 0);
     const serre = Number(state.power?.serre || 0);
-    const lab = Number(state.power?.lab || 0);
-    if (total === 9 && heat >= 3 && pump >= 3 && (serre >= 3 || lab >= 3)) {
+    if (total === 9 && heat >= 3 && pump >= 3 && serre >= 3) {
       if (!state.solved) {
         update(ref(db, energyRefPath), { solved: true });
         pushLog("Succès : réseau énergétique stabilisé à 9 kW");
-        if (onSolve) onSolve();
+        if (onWin) onWin();
       }
     }
-  }, [state, onSolve]);
+  }, [state, onWin]);
 
   useEffect(() => {
     const iv = setInterval(() => {
@@ -154,17 +182,25 @@ export default function PuzzleEnergy({ sessionId, playerRole, onSolve }) {
   if (!state) return <div>Chargement du module énergie...</div>;
 
   const total = Number(state.total || 0);
-  const power = state.power || { heat: 0, pump: 0, serre: 0, lab: 0 };
+  const power = state.power || { heat: 0, pump: 0, serre: 0 };
   const defaultModules = { 
-    heat: { R: 3, connected: true }, 
-    pump: { R: 3, connected: true }, 
-    serre: { R: 3, connected: false }, 
-    lab: { R: 3, connected: false } 
+    heat: { R: 1, connected: true }, 
+    pump: { R: 1, connected: true }, 
+    serre: { R: 1, connected: true }
   };
   const cfgSource = state.config || {};
   const config = {
     voltage: typeof cfgSource.voltage === 'number' ? cfgSource.voltage : 0,
-    modules: { ...defaultModules, ...(cfgSource.modules || {}) },
+    modules: { 
+      ...defaultModules, 
+      ...(cfgSource.modules || {}),
+      // Force la serre à être toujours connectée
+      serre: { 
+        ...defaultModules.serre, 
+        ...(cfgSource.modules?.serre || {}), 
+        connected: true 
+      }
+    },
   };
 
   const isEnerg = !playerRole || playerRole === 'Énergéticien';
@@ -191,7 +227,9 @@ export default function PuzzleEnergy({ sessionId, playerRole, onSolve }) {
                 step={0.1} 
                 value={config.voltage} 
                 disabled={state.blackout}
-                onChange={(e) => updateConfig({ voltage: Number(e.target.value) }, 'Énergéticien')} 
+                onChange={(e) => updateConfig({ voltage: Number(e.target.value) }, 'Énergéticien', false)}
+                onMouseUp={(e) => updateConfig({ voltage: Number(e.target.value) }, 'Énergéticien', true)}
+                onTouchEnd={(e) => updateConfig({ voltage: Number(e.target.value) }, 'Énergéticien', true)} 
               />
               <div style={{marginTop:12}}>
                 <div>Chauffage — P: <b>{power.heat}</b> kW</div>
@@ -205,7 +243,13 @@ export default function PuzzleEnergy({ sessionId, playerRole, onSolve }) {
                   disabled={state.blackout}
                   onChange={(e) => updateConfig({ 
                     modules: { heat: { ...config.modules.heat, R: Number(e.target.value) } } 
-                  }, 'Énergéticien')} 
+                  }, 'Énergéticien', false)}
+                  onMouseUp={(e) => updateConfig({ 
+                    modules: { heat: { ...config.modules.heat, R: Number(e.target.value) } } 
+                  }, 'Énergéticien', true)}
+                  onTouchEnd={(e) => updateConfig({ 
+                    modules: { heat: { ...config.modules.heat, R: Number(e.target.value) } } 
+                  }, 'Énergéticien', true)} 
                 />
                 <div style={{marginTop:8}}>
                   Total: <b>{total}</b> kW (objectif: 9 kW)
@@ -216,8 +260,9 @@ export default function PuzzleEnergy({ sessionId, playerRole, onSolve }) {
           {isHydro && (
             <div>
               <h4>État des pompes</h4>
-              <div>Pompe: <b>{power.pump >= 3 ? 'OK' : 'Faible'}</b> — <span style={{color:'#00b'}}>({power.pump} kW)</span></div>
-              <div>Résistance pompe: <b>{config.modules.pump.R}</b></div>
+              <div>Pompe: <b>{power.pump}</b> kW</div>
+              <div>Voltage système: <b>{config.voltage.toFixed(1)}</b> V</div>
+              <div>Résistance pompe: <b>{config.modules.pump.R}</b> Ω</div>
               <input 
                 type="range" 
                 min={1} 
@@ -227,16 +272,22 @@ export default function PuzzleEnergy({ sessionId, playerRole, onSolve }) {
                 disabled={state.blackout}
                 onChange={(e) => updateConfig({ 
                   modules: { pump: { ...config.modules.pump, R: Number(e.target.value) } } 
-                }, 'Hydrologue')} 
+                }, 'Hydrologue', false)}
+                onMouseUp={(e) => updateConfig({ 
+                  modules: { pump: { ...config.modules.pump, R: Number(e.target.value) } } 
+                }, 'Hydrologue', true)}
+                onTouchEnd={(e) => updateConfig({ 
+                  modules: { pump: { ...config.modules.pump, R: Number(e.target.value) } } 
+                }, 'Hydrologue', true)} 
               />
             </div>
           )}
           {isBio && (
             <div>
               <h4>Serre</h4>
-              <div>Chauffage: <b>{power.heat}</b> kW</div>
-              <div>Éclairage: <b>{power.serre}</b> kW</div>
-              <div>Résistance serre: <b>{config.modules.serre.R}</b></div>
+              <div>Serre: <b>{power.serre}</b> kW</div>
+              <div>Voltage système: <b>{config.voltage.toFixed(1)}</b> V</div>
+              <div>Résistance serre: <b>{config.modules.serre.R}</b> Ω</div>
               <input 
                 type="range" 
                 min={1} 
@@ -245,8 +296,14 @@ export default function PuzzleEnergy({ sessionId, playerRole, onSolve }) {
                 value={config.modules.serre.R} 
                 disabled={state.blackout}
                 onChange={(e) => updateConfig({ 
-                  modules: { serre: { ...config.modules.serre, R: Number(e.target.value) } } 
-                }, 'Biologiste')} 
+                  modules: { serre: { ...config.modules.serre, R: Number(e.target.value), connected: true } } 
+                }, 'Biologiste', false)}
+                onMouseUp={(e) => updateConfig({ 
+                  modules: { serre: { ...config.modules.serre, R: Number(e.target.value), connected: true } } 
+                }, 'Biologiste', true)}
+                onTouchEnd={(e) => updateConfig({ 
+                  modules: { serre: { ...config.modules.serre, R: Number(e.target.value), connected: true } } 
+                }, 'Biologiste', true)} 
               />
             </div>
           )}

@@ -4,7 +4,7 @@ import { ref, onValue, update, set } from "firebase/database";
 
 // PuzzlePompe connecté à Realtime DB sous sessions/{sessionId}/pompe
 // Props: sessionId (obligatoire), playerRole (optionnel), onSolve (callback)
-export default function PuzzlePompe({ sessionId, playerRole, onSolve }) {
+export default function PuzzlePompe({ sessionId, playerRole, onWin }) {
   const [state, setState] = useState(null);
   const [logs, setLogs] = useState([]);
   
@@ -189,14 +189,14 @@ export default function PuzzlePompe({ sessionId, playerRole, onSolve }) {
         clearTimeout(window.__pompeSurchargeTimeout);
         window.__pompeSurchargeTimeout = null;
       }
-      // P3 se stabilise à 80 si V3 fermée ET pompe entre 75 et 85 inclus
+      // P3 se stabilise à 50 si V3 fermée ET pompe entre 75 et 85 inclus
       if (v.v3 === "closed" && pump >= 75 && pump <= 85) {
-        if (next.p3 < 80) {
-          next.p3 = Math.min(80, next.p3 + 4);
-        } else if (next.p3 > 80) {
-          next.p3 = Math.max(80, next.p3 - 3);
+        if (next.p3 < 50) {
+          next.p3 = Math.min(50, next.p3 + 4);
+        } else if (next.p3 > 50) {
+          next.p3 = Math.max(50, next.p3 - 3);
         }
-        // sinon, reste à 80
+        // sinon, reste à 50
       } else {
         // sinon, tendance à baisser
         next.p3 = Math.max(0, next.p3 - 3);
@@ -213,12 +213,12 @@ export default function PuzzlePompe({ sessionId, playerRole, onSolve }) {
         setPumpPower(0);
         update(ref(db, pompeRefPath), { pumpPower: 0 });
       }
-      // Condition de victoire : P1=80, P2=80, P3=50
+      // Condition de victoire : P1=80, P2=80, P3>=50
       let win = false;
       if (
         next.p1 === 80 &&
         next.p2 === 80 &&
-        next.p3 === 50
+        next.p3 >= 50
       ) {
         win = true;
       }
@@ -231,7 +231,10 @@ export default function PuzzlePompe({ sessionId, playerRole, onSolve }) {
       setPressure(next);
       setCrashed(crash);
       setSolved(win);
-      if (win) pushLog("Succès : fuite isolée et pression rétablie sur P3");
+      if (win) {
+        pushLog("Succès : fuite isolée et pression rétablie sur P3");
+        if (onWin) onWin();
+      }
       if (crash) pushLog("CRASH SYSTEM : pompe en surcharge, redémarrage nécessaire");
     }, 1200);
     return () => clearInterval(interval);
