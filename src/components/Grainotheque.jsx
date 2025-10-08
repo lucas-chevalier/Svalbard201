@@ -89,7 +89,7 @@ export default function Grainotheque({ sessionId, roomName = "grainotheque", onW
 
   return (
     <div className="salle-grainotheque" style={{ textAlign: "center", padding: "2rem" }}>
-      <h2>Bienvenue dans la Grainothèque</h2>
+      <h2>Bienvenue dans la Salle radio</h2>
 
       {/* 🧭 Barre de progression */}
       <div

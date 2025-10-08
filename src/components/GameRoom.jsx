@@ -85,7 +85,7 @@ export default function GameRoom({ sessionId, playerId }) {
   if (!session?.host || roomsOrder.length > 0 || playerId !== session.host) return;
 
   const defaultOrder = [
-    { name: "Grainothèque", bg: "/backgrounds/grainotheque.png" },
+    { name: "Salle radio", bg: "/backgrounds/grainotheque.png" },
     { name: "Pompe hydraulique", bg: "/backgrounds/water.jpg" },
     { name: "Centrale électrique", bg: "/backgrounds/centrale.jpg" },
     { name: "Biosphère", bg: "/backgrounds/biosphereB.png" },
@@ -108,7 +108,7 @@ export default function GameRoom({ sessionId, playerId }) {
 
   // --- Liste des mini-jeux disponibles
   const miniGames = {
-    "Grainothèque": Grainotheque,
+    "Salle radio": Grainotheque,
     "Pompe hydraulique": PuzzlePompe,
     "Centrale électrique": PuzzleEnergy,
     "Biosphère": Biosphere,

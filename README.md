@@ -6,7 +6,7 @@ Svalbard201 est un escape game collaboratif en ligne, conçu pour être joué à
 
 - **Multi-joueurs** : synchronisation en temps réel via Firebase
 - **Rôles** : Hydrologue, Énergéticien, Biologiste
-- **Épreuves** : puzzles interactifs (pompe hydraulique, biosphère, centrale, grainothèque…)
+- **Épreuves** : puzzles interactifs (pompe hydraulique, biosphère, centrale, Salle radio…)
 - **Chat intégré** : communication entre joueurs
 - **Progression partagée** : chaque action est visible par tous
 

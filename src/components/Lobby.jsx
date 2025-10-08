@@ -75,14 +75,14 @@ export default function Lobby({ onJoin }) {
           rotations: waterGrid.map(row => row.map(() => Math.floor(Math.random() * 4))) 
         } 
       },
-      miniGameStatus: { 
+  miniGameStatus: { 
   "Pompe hydraulique": false,
-        "Débarras": false,
-        "Système de survie": false,
-        "Biosphère": false,
-        "Grainothèque": false,
-        "Centrale électrique": false
-      },
+    "Débarras": false,
+    "Système de survie": false,
+    "Biosphère": false,
+    "Salle radio": false,
+    "Centrale électrique": false
+  },
       timer: null
     });
 

@@ -8,7 +8,7 @@ export default function Map() {
         <div className="room survival">Système de survie</div>
         <div className="room storage">Débarras</div>
         <div className="room biosphere">Biosphère</div>
-        <div className="room seedbank">Grainothèque</div>
+  <div className="room seedbank">Salle radio</div>
         <div className="room power">Centrale électrique</div>
   <div className="room water">Pompe hydraulique</div>
       </div>
