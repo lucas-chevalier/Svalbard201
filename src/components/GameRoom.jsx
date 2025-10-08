@@ -9,11 +9,14 @@ import Biosphere from "./Biosphere";
 import PuzzleEnergy from "./PuzzleEnergy";
 
 function Room({ title, bg, children }) {
+  const defaultBg = "/backgrounds/controlRoom.jpg";
+  const backgroundImage = bg || defaultBg;
+
   return (
     <div
       className="room fade-in"
       style={{
-        backgroundImage: `url(${bg})`,
+        backgroundImage: `url(${backgroundImage})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
         minHeight: "100vh",
@@ -28,7 +31,7 @@ function Room({ title, bg, children }) {
   );
 }
 
-function PlayerStatus({ players, host, miniGameStatus }) {
+function PlayerStatus({ players, host, miniGameStatus, currentRoom }) {
   return (
     <div className="player-status">
       <h4>👥 Équipe connectée</h4>
@@ -38,7 +41,8 @@ function PlayerStatus({ players, host, miniGameStatus }) {
             <span style={{ color: p.color || "#0f0" }}>{p.name}</span> —{" "}
             <span>{p.role || "Aucun rôle"}</span>
             {p.id === host && <span> ★ Chef</span>}
-            {p.currentRoom && miniGameStatus[p.currentRoom] && <span> ✔</span>}
+            {p.currentRoom === currentRoom && <span> 👉</span>}
+            {miniGameStatus[currentRoom] && <span> ✔</span>}
           </li>
         ))}
       </ul>
@@ -49,8 +53,6 @@ function PlayerStatus({ players, host, miniGameStatus }) {
 export default function GameRoom({ sessionId, playerId }) {
   const [session, setSession] = useState(null);
   const [currentRoom, setCurrentRoom] = useState("controlRoom");
-  // Pour reset les logs de la pompe quand on quitte la salle
-  const pompeRef = ref(db, `sessions/${sessionId}/pompe`);
   const [miniGameStatus, setMiniGameStatus] = useState({});
   const [roomsOrder, setRoomsOrder] = useState([]);
 
@@ -82,11 +84,11 @@ export default function GameRoom({ sessionId, playerId }) {
     if (roomsOrder.length > 0) return;
     if (playerId === session.host) {
       const defaultOrder = [
-        { name: "Grainothèque", bg: "/backgrounds/grainotheque.jpg" },
+        { name: "Grainothèque", bg: "/backgrounds/grainotheque.png" },
         { name: "Salle de traitement (eau)", bg: "/backgrounds/water.jpg" },
         { name: "Centrale électrique", bg: "/backgrounds/centrale.jpg" },
         { name: "Débarras", bg: "/backgrounds/debarras.jpg" },
-        { name: "Biosphère", bg: "/backgrounds/biosphere.jpg" },
+        { name: "Biosphère", bg: "/backgrounds/biosphereB.png" }, // Image par défaut pour la Biosphère
         { name: "Système de survie", bg: "/backgrounds/survie.jpg" },
       ].map((r, i) => ({ ...r, order: i + 1 }));
 
@@ -128,6 +130,7 @@ export default function GameRoom({ sessionId, playerId }) {
             players={session.players}
             host={session.host}
             miniGameStatus={miniGameStatus}
+            currentRoom={currentRoom}
           />
           <div className="progress-section">
             <div className="progress-text">
@@ -190,7 +193,7 @@ export default function GameRoom({ sessionId, playerId }) {
         </Room>
       ) : (
         currentRoom === "Biosphère" ? (
-          <Biosphere playerID={session.players[playerId]?.role} />
+          <Biosphere playerId={playerId} role={session.players[playerId]?.role} />
         ) : (
           <Room key={currentRoom} title={currentRoom} bg={currentRoomInfo?.bg}>
             <Timer endTime={session.timer} />
