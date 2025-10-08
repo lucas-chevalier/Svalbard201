@@ -8,6 +8,9 @@ export default function PuzzlePompe({ sessionId, playerRole, onWin, players, pla
   const [state, setState] = useState(null);
   const [logs, setLogs] = useState([]);
   
+  // Définir le chemin Firebase en premier
+  const pompeRefPath = `sessions/${sessionId}/pompe`;
+  
   // --- CONTEXTE & OBJECTIF ---
   // Ce puzzle simule une fuite dans le système hydraulique de la station.
   // Votre objectif : identifier la zone de fuite, isoler la section concernée à l'aide des vannes,
@@ -32,11 +35,10 @@ export default function PuzzlePompe({ sessionId, playerRole, onWin, players, pla
       }
     }, { onlyOnce: true });
     // onlyOnce: true pour ne pas réécrire à chaque re-render
-  }, [sessionId]);
+  }, [sessionId, pompeRefPath]);
 
   const [hintVisible, setHintVisible] = useState(false);
   const lastActivity = useRef(Date.now());
-  const pompeRefPath = `sessions/${sessionId}/pompe`;
 
   // États principaux
   const [pressure, setPressure] = useState({ p1: 0, p2: 0, p3: 0 });

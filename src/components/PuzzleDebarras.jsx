@@ -35,7 +35,7 @@ export default function PuzzleDebarras({ sessionId, roomName, onWin, playerRole,
   const [placements, setPlacements] = useState({});
   const [slotsState, setSlotsState] = useState([]);
 
-  const debarrasRefPath = sessionId ? `sessions/${sessionId}/puzzles/debarras` : null;
+  const debarrasRefPath = sessionId ? `sessions/${sessionId}/puzzles/${roomName}` : null;
   const roleOrder = ['Biologiste', 'Énergéticien', 'Hydrologue'];
   const isMyTurn = dbCurrentPlayer && String(dbCurrentPlayer) === String(playerId);
 
