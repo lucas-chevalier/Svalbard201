@@ -370,63 +370,28 @@ export default function PuzzleDebarras({ sessionId, roomName, onWin, playerRole,
   const visualSlots = ['piece1','piece2','piece3','piece4','piece5','piece6','piece7','piece8','piece9'];
 
   return (
-    <div className={isMyTurn ? 'puzzle-container' : 'puzzle-container inactive-dim'} style={{ color:'#fff', minHeight: '70vh', display:'flex', justifyContent:'center', alignItems:'center' }}>
-      <style>{`
-        .active-player-glow {
-          display: inline-block;
-          padding: 8px 12px;
-          border-radius: 8px;
-          box-shadow: 0 0 18px rgba(0,255,220,0.18), 0 0 36px rgba(0,200,150,0.12);
-          animation: pulseGlow 2s infinite ease-in-out;
-          background: linear-gradient(90deg, #00334d, #004d66);
-          color: #eaffff;
-        }
-        @keyframes pulseGlow {
-          0% { box-shadow: 0 0 6px rgba(0,255,220,0.08); transform: scale(1); }
-          50% { box-shadow: 0 0 20px rgba(0,255,220,0.18); transform: scale(1.02); }
-          100% { box-shadow: 0 0 6px rgba(0,255,220,0.08); transform: scale(1); }
-        }
-        .inactive-dim { filter: grayscale(12%); }
-        .question-box { padding: 16px; border-radius: 10px; background: #00334d; color: #eaf6fb; }
-        .question-hidden { font-style: italic; color: #cfe9ef; }
-        .waiting-note { margin-top:8px; color:#ffd17a; font-weight:600; }
-        .answers button { background: #008fb3; color: #fff; border: none; padding: 10px 14px; margin-right:8px; border-radius:6px; cursor:pointer; transition: transform .12s ease, background .12s ease; }
-        .answers button:disabled { background: #346b7b; color:#cfe9ef; cursor:not-allowed; transform:none; }
-        .piece-preview { width: 120px; height: 120px; border-radius: 10px; background: #004d66; border: 2px solid #00ffaa; display:flex; align-items:center; justify-content:center; box-shadow: 0 6px 18px rgba(0,0,0,0.35); }
-        .slot { width:120px; height:120px; border-radius:8px; background: #004d66; border: 2px dashed #0ff; display:flex; align-items:center; justify-content:center; transition: transform .18s ease; }
-        .slot img { width:100px; height:100px; transition: transform .18s ease, opacity .18s ease; }
-        .placed { transform: scale(1.02); }
-      `}</style>
-      <div style={{ width: '90%', maxWidth: 1100, display:'flex', flexDirection:'column', gap:12, alignItems:'center' }}>
-        <h3 style={{ margin:0 }}>Svalbard 201 - Puzzle Débarras</h3>
+    <div className={isMyTurn ? 'puzzle-container' : 'puzzle-container inactive-dim'}>
+      <div className="puzzle-center-wrapper">
+        <h3 className="puzzle-title">Svalbard 201 - Puzzle Débarras</h3>
 
         {/* Affichage des rôles de tous les joueurs */}
-        <div style={{ width:'100%', display:'flex', justifyContent:'center', marginBottom:12, padding:8, background:'#00334d', borderRadius:8 }}>
-          <div style={{ color:'#eaffff', fontSize:14 }}>
-            <div style={{ fontWeight:'bold', marginBottom:4 }}>👥 Équipe :</div>
-            <div style={{ display:'flex', gap:16, flexWrap:'wrap', justifyContent:'center' }}>
+        <div className="puzzle-players-bar">
+          <div className="puzzle-players-inner">
+            <div className="puzzle-players-title">👥 Équipe :</div>
+            <div className="puzzle-players-list">
               {(sessionPlayers ? Object.values(sessionPlayers) : playersArr).map(player => (
-                <div key={player.id} style={{ 
-                  padding:'4px 8px', 
-                  borderRadius:4, 
-                  background: String(player.id) === String(playerId) ? '#004d66' : '#002233',
-                  border: String(player.id) === String(playerId) ? '1px solid #00ffaa' : '1px solid #333'
-                }}>
-                  <span style={{ fontWeight: String(player.id) === String(playerId) ? 'bold' : 'normal' }}>
-                    {player.name || `Joueur ${player.id}`}
-                  </span>
-                  <span style={{ color:'#00ffaa', marginLeft:4 }}>
-                    ({player.role || 'Aucun'})
-                  </span>
+                <div key={player.id} className={`puzzle-player ${String(player.id) === String(playerId) ? 'me' : ''}`}>
+                  <span className="puzzle-player-name">{player.name || `Joueur ${player.id}`}</span>
+                  <span className="puzzle-player-role">({player.role || 'Aucun'})</span>
                 </div>
               ))}
             </div>
           </div>
         </div>
 
-        <div style={{ width:'100%', display:'flex', justifyContent:'center', marginBottom:6 }}>
-          <div className={dbCurrentPlayer ? 'active-player-glow' : ''} style={{ color: dbCurrentPlayer === playerId ? '#caffff' : '#ddd' }}>
-            Joueur courant : {(() => {
+        <div className="puzzle-current-row">
+          <div className={`puzzle-current-player ${dbCurrentPlayer ? 'active-player-glow' : ''} ${dbCurrentPlayer === playerId ? 'me' : ''}`}>
+            Joueur actif : {(() => {
               const currentPlayer = sessionPlayers 
                 ? Object.values(sessionPlayers).find(p => String(p.id) === String(dbCurrentPlayer))
                 : playersArr.find(p => String(p.id) === String(dbCurrentPlayer));
@@ -435,16 +400,17 @@ export default function PuzzleDebarras({ sessionId, roomName, onWin, playerRole,
           </div>
         </div>
 
-        <div style={{ width:'100%', display:'flex', gap:24, justifyContent:'center', alignItems:'flex-start' }}>
-          <div style={{ flex: 1, maxWidth: 420 }}>
+        <div className="puzzle-main">
+          <div className="puzzle-left">
             <div className="question-box">
               {isMyTurn && currentPiece ? (
                 <>
                   <div style={{ fontWeight:'700', fontSize:18 }}>{currentPiece.question}</div>
-                  <div className="answers" style={{ marginTop:12, display:'flex', flexWrap:'wrap' }}>
+                  <div className="answers" aria-live="polite">
                     {currentPiece.options.map((opt, i) => (
                       <button
                         key={i}
+                        className="puzzle-answer-btn"
                         onClick={() => isMyTurn && checkAnswer(['A','B','C'][i])}
                         aria-disabled={!isMyTurn}
                         aria-pressed={false}
@@ -457,29 +423,28 @@ export default function PuzzleDebarras({ sessionId, roomName, onWin, playerRole,
               ) : (
                 <>
                   <div className="question-hidden" aria-hidden="true">Question masquée</div>
-                  <div className="waiting-note" role="status" aria-live="polite">⏳ En attente de la réponse du joueur courant...</div>
+                  <div className="waiting-note" role="status" aria-live="polite">⏳ En attente de la réponse du joueur actif...</div>
                 </>
               )}
             </div>
-            <div style={{ marginTop:8, padding:8, background:'#00334d', borderRadius:8 }}>
-              <div style={{ fontWeight:'bold', color:'#ffcc00' }}>{message}</div>
+            <div className="puzzle-message">
+              <div className="puzzle-message-text">{message}</div>
             </div>
           </div>
-
-          <div style={{ width:520, display:'flex', flexDirection:'column', alignItems:'center' }}>
+          <div className="puzzle-right">
             <div className="piece-preview">
               {currentPiece && (
                 <img
                   src={currentPiece.img}
                   alt={currentPiece.id}
-                  style={{ width:110, height:110 }}
+                  className="piece-img"
                   draggable={canPlace && isMyTurn}
                   onDragStart={(e) => e.dataTransfer.setData('text/plain', currentPiece.id)}
                 />
               )}
             </div>
 
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(3,120px)', gap:10, marginTop:18, background:'#00334d', padding:12, borderRadius:10 }}>
+            <div className="puzzle-slots-grid">
               {visualSlots.map((s) => (
                 <div
                   key={s}
@@ -500,7 +465,7 @@ export default function PuzzleDebarras({ sessionId, roomName, onWin, playerRole,
                   className="slot"
                 >
                   {placements && placements[s] ? (
-                    <img src={getImgForPiece(placements[s])} alt={placements[s]} style={{ width:100, height:100 }} className="placed" />
+                    <img src={getImgForPiece(placements[s])} alt={placements[s]} className="placed" />
                   ) : null}
                 </div>
               ))}
@@ -510,10 +475,10 @@ export default function PuzzleDebarras({ sessionId, roomName, onWin, playerRole,
 
         <div style={{ marginTop:12, display:'flex', gap:8 }}>
           {canLaunch && isHost && (
-            <button onClick={launchPuzzle} style={{ padding:'8px 12px', borderRadius:6 }}>Lancer le puzzle</button>
+            <button onClick={launchPuzzle} className="puzzle-action-btn">Lancer le puzzle</button>
           )}
           {isHost && (
-            <button onClick={resetAndShuffle} style={{ padding:'8px 12px', borderRadius:6, background:'#aa3333', color:'#fff' }}>Réinitialiser</button>
+            <button onClick={resetAndShuffle} className="puzzle-action-btn destructive">Réinitialiser</button>
           )}
         </div>
       </div>
