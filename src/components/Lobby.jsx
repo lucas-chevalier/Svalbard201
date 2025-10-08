@@ -83,7 +83,7 @@ export default function Lobby({ onJoin }) {
         "Grainothèque": false,
         "Centrale électrique": false
       },
-      timer: Date.now() + 60*60*1000
+      timer: null
     });
 
     onJoin && onJoin(sid, playerId);

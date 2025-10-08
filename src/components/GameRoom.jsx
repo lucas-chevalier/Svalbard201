@@ -59,6 +59,7 @@ export default function GameRoom({ sessionId, playerId }) {
   const sessionRef = ref(db, `sessions/${sessionId}`);
   const miniGameRef = ref(db, `sessions/${sessionId}/miniGameStatus`);
   const orderRef = ref(db, `sessions/${sessionId}/roomsOrder`);
+  const timerRef = ref(db, `sessions/${sessionId}/timer`);
 
   // --- 🔹 Chargement des données
   useEffect(() => {
@@ -80,22 +81,27 @@ export default function GameRoom({ sessionId, playerId }) {
 
   // --- ⚙️ Définir l'ordre initial (1 seule fois, par le host)
   useEffect(() => {
-    if (!session?.host) return;
-    if (roomsOrder.length > 0) return;
-    if (playerId === session.host) {
-      const defaultOrder = [
-        { name: "Grainothèque", bg: "/backgrounds/grainotheque.png" },
-        { name: "Salle de traitement (eau)", bg: "/backgrounds/water.jpg" },
-        { name: "Centrale électrique", bg: "/backgrounds/centrale.jpg" },
-        { name: "Débarras", bg: "/backgrounds/debarras.jpg" },
-        { name: "Biosphère", bg: "/backgrounds/biosphereB.png" }, // Image par défaut pour la Biosphère
-        { name: "Système de survie", bg: "/backgrounds/survie.jpg" },
-      ].map((r, i) => ({ ...r, order: i + 1 }));
+  if (!session?.host || roomsOrder.length > 0 || playerId !== session.host) return;
 
-      set(orderRef, defaultOrder);
-      setRoomsOrder(defaultOrder);
-    }
-  }, [session, playerId, roomsOrder, orderRef]);
+  const defaultOrder = [
+    { name: "Grainothèque", bg: "/backgrounds/grainotheque.png" },
+    { name: "Salle de traitement (eau)", bg: "/backgrounds/water.jpg" },
+    { name: "Centrale électrique", bg: "/backgrounds/centrale.jpg" },
+    { name: "Biosphère", bg: "/backgrounds/biosphereB.png" },
+    { name: "Débarras", bg: "/backgrounds/debarras.jpg" },
+    { name: "Système de survie", bg: "/backgrounds/survie.jpg" },
+  ].map((r, i) => ({ ...r, order: i + 1 }));
+
+  set(orderRef, defaultOrder).then(() => setRoomsOrder(defaultOrder));
+
+  // Timer : on vérifie via Firebase snapshot pour éviter de relancer à chaque render
+  const timerSnap = ref(db, `sessions/${sessionId}/timer`);
+  onValue(timerSnap, (snap) => {
+    if (!snap.exists()) set(timerRef, Date.now() + 60 * 60 * 1000);
+  }, { onlyOnce: true });
+
+}, [session?.host, roomsOrder.length, playerId]);
+
 
   if (!session) return <p>Chargement...</p>;
 
@@ -104,6 +110,7 @@ export default function GameRoom({ sessionId, playerId }) {
     "Grainothèque": Grainotheque,
     "Salle de traitement (eau)": PuzzlePompe,
     "Centrale électrique": PuzzleEnergy,
+    "Biosphère": Biosphere,
   };
 
   // --- Gestion de la validation d'une salle
@@ -116,7 +123,6 @@ export default function GameRoom({ sessionId, playerId }) {
   const currentRoomInfo = roomsOrder.find((r) => r.name === currentRoom);
   const MiniGame = miniGames[currentRoom];
 
-  // Fonction pour quitter une salle
   const handleLeaveRoom = () => {
     setCurrentRoom("controlRoom");
   };
@@ -149,11 +155,7 @@ export default function GameRoom({ sessionId, playerId }) {
           </div>
           <div
             className="map-grid"
-            style={{
-              opacity: 0.6,
-              pointerEvents: "auto",
-              transition: "opacity 0.3s ease",
-            }}
+            style={{ opacity: 0.6, pointerEvents: "auto", transition: "opacity 0.3s ease" }}
           >
             {roomsOrder.map((room, index) => {
               const isUnlocked =
@@ -163,9 +165,7 @@ export default function GameRoom({ sessionId, playerId }) {
               return (
                 <div
                   key={room.name}
-                  className={`room-tile ${
-                    isCompleted ? "completed" : ""
-                  } ${!isUnlocked ? "locked" : ""}`}
+                  className={`room-tile ${isCompleted ? "completed" : ""} ${!isUnlocked ? "locked" : ""}`}
                   style={{
                     cursor: isUnlocked ? "pointer" : "not-allowed",
                     opacity: isUnlocked ? 1 : 0.4,
@@ -192,32 +192,25 @@ export default function GameRoom({ sessionId, playerId }) {
           />
         </Room>
       ) : (
-        currentRoom === "Biosphère" ? (
-          <Biosphere playerId={playerId} role={session.players[playerId]?.role} />
-        ) : (
-          <Room key={currentRoom} title={currentRoom} bg={currentRoomInfo?.bg}>
-            <Timer endTime={session.timer} />
-            {MiniGame && (
-              <MiniGame
-                sessionId={sessionId}
-                roomName={currentRoom.toLowerCase()}
-                playerRole={session.players[playerId]?.role}
-                onWin={() => handleWin(currentRoom)}
-              />
-            )}
-            <button
-              className="return-lobby-btn"
-              onClick={handleLeaveRoom}
-            >
-              Retour à la salle de contrôle
-            </button>
-            <Chat
+        <Room key={currentRoom} title={currentRoom} bg={currentRoomInfo?.bg}>
+          <Timer endTime={session.timer} />
+          {MiniGame && (
+            <MiniGame
               sessionId={sessionId}
-              playerId={playerId}
-              playerName={session.players[playerId]?.name || "??"}
+              roomName={currentRoom.toLowerCase()}
+              playerRole={session.players[playerId]?.role}
+              onWin={() => handleWin(currentRoom)}
             />
-          </Room>
-        )
+          )}
+          <button className="return-lobby-btn" onClick={handleLeaveRoom}>
+            Retour à la salle de contrôle
+          </button>
+          <Chat
+            sessionId={sessionId}
+            playerId={playerId}
+            playerName={session.players[playerId]?.name || "??"}
+          />
+        </Room>
       )}
     </>
   );

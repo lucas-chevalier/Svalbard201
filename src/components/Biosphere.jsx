@@ -1,8 +1,6 @@
-import React from "react";
-const biosphereH = "/backgrounds/biosphereH.png";
-const biosphereB = "/backgrounds/biosphereB.png";
-const biosphereE = "/backgrounds/biosphereE.png";
-const moniteur = "/ImageEnigmes/moniteur.png";
+import React, { useState, useEffect } from "react";
+import { ref, update } from "firebase/database";
+import { db } from "../firebase";
 
 const botaniqueData = [
   { nom: "Solanum-PT (Pomme de terre)", eau: "Moyen", energie: "Moyen", type: "Nourricière" },
@@ -15,10 +13,10 @@ const botaniqueData = [
   { nom: "Phragmites-RS (Roseau)", eau: "Élevé", energie: "Faible", type: "Assainissante" },
 ];
 
-function Biosphere({ playerID }) {
+export default function Biosphere({ playerRole, sessionId, onWin }) {
   let infoContent;
 
-  if (playerID === "Hydrologue") {
+  if (playerRole === "Hydrologue") {
     infoContent = (
       <>
         <h2>Note de service interne – Département Hydrique Svalbard 201</h2>
@@ -46,38 +44,38 @@ function Biosphere({ playerID }) {
         </p>
       </>
     );
-  } else if (playerID === "Biologiste") {
+  } else if (playerRole === "Biologiste") {
     infoContent = (
       <>
         <h2>Fichier de consultation : Réserve Botanique – Section 201 / Accès Niveau B2</h2>
-        <table style={{width: '100%', background: '#111', color: '#00ff66', fontFamily: 'Consolas, monospace', borderCollapse: 'collapse', marginTop: '1em'}}>
+        <table style={{ width: '100%', background: '#111', color: '#00ff66', fontFamily: 'Consolas, monospace', borderCollapse: 'collapse', marginTop: '1em' }}>
           <thead>
-            <tr style={{background: '#222', color: '#00ffcc'}}>
-              <th style={{padding: '0.5em', borderBottom: '1px solid #00ff66'}}>Nom scientifique (code de spécimen)</th>
-              <th style={{padding: '0.5em', borderBottom: '1px solid #00ff66'}}>Besoin en eau</th>
-              <th style={{padding: '0.5em', borderBottom: '1px solid #00ff66'}}>Besoin énergétique</th>
-              <th style={{padding: '0.5em', borderBottom: '1px solid #00ff66'}}>Type écologique</th>
+            <tr style={{ background: '#222', color: '#00ffcc' }}>
+              <th style={{ padding: '0.5em', borderBottom: '1px solid #00ff66' }}>Nom scientifique (code de spécimen)</th>
+              <th style={{ padding: '0.5em', borderBottom: '1px solid #00ff66' }}>Besoin en eau</th>
+              <th style={{ padding: '0.5em', borderBottom: '1px solid #00ff66' }}>Besoin énergétique</th>
+              <th style={{ padding: '0.5em', borderBottom: '1px solid #00ff66' }}>Type écologique</th>
             </tr>
           </thead>
           <tbody>
             {botaniqueData.map((plante, idx) => (
               <tr key={idx}>
-                <td style={{padding: '0.5em', borderBottom: '1px solid #222'}}>{plante.nom}</td>
-                <td style={{padding: '0.5em', borderBottom: '1px solid #222'}}>{plante.eau}</td>
-                <td style={{padding: '0.5em', borderBottom: '1px solid #222'}}>{plante.energie}</td>
-                <td style={{padding: '0.5em', borderBottom: '1px solid #222'}}>{plante.type}</td>
+                <td style={{ padding: '0.5em', borderBottom: '1px solid #222' }}>{plante.nom}</td>
+                <td style={{ padding: '0.5em', borderBottom: '1px solid #222' }}>{plante.eau}</td>
+                <td style={{ padding: '0.5em', borderBottom: '1px solid #222' }}>{plante.energie}</td>
+                <td style={{ padding: '0.5em', borderBottom: '1px solid #222' }}>{plante.type}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </>
     );
-  } else if (playerID === "Énergéticien") {
+  } else if (playerRole === "Énergéticien") {
     infoContent = (
       <>
         <h2>Terminal d’alimentation – Biosphère 201 / Système de validation des combinaisons</h2>
-        <TerminalEnergéticien />
-        <div style={{marginTop: '2em', fontSize: '0.9em', color: '#00ffcc'}}>
+        <TerminalEnergéticien sessionId={sessionId} onWin={onWin} />
+        <div style={{ marginTop: '2em', fontSize: '0.9em', color: '#00ffcc' }}>
           Terminal : SVALBARD_201_MAINFRAME // Secure Node 04
         </div>
       </>
@@ -86,9 +84,8 @@ function Biosphere({ playerID }) {
     infoContent = <div>Rôle inconnu.</div>;
   }
 
-  // Affichage sans le moniteur, contenu à 10% du bas
   return (
-    <div className="biosphere-room" style={{ backgroundImage: `url(${biosphereH})`, backgroundSize: "cover", minHeight: "100vh", position: "relative" }}>
+    <div className="biosphere-room" style={{ minHeight: "100vh", position: "relative" }}>
       <div style={{
         position: "absolute",
         left: "10%",
@@ -102,7 +99,6 @@ function Biosphere({ playerID }) {
         overflowY: "auto",
         color: "#00ff66",
         fontFamily: "Consolas, monospace",
-        background: "rgba(0,0,0,0.0)"
       }}>
         {infoContent}
       </div>
@@ -110,14 +106,14 @@ function Biosphere({ playerID }) {
   );
 }
 
-function TerminalEnergéticien() {
-  const [codes, setCodes] = React.useState([]);
-  const [input, setInput] = React.useState("");
-  const [message, setMessage] = React.useState("");
-  const [msgColor, setMsgColor] = React.useState("#00ff66");
-  const [plantsEntered, setPlantsEntered] = React.useState([]);
+// === Terminal Énergéticien ===
+function TerminalEnergéticien({ sessionId, onWin }) {
+  const [codes, setCodes] = useState([]);
+  const [input, setInput] = useState("");
+  const [message, setMessage] = useState("");
+  const [msgColor, setMsgColor] = useState("#00ff66");
+  const [plantsEntered, setPlantsEntered] = useState([]);
 
-  // Plantes et règles du JSON
   const plants = [
     { code: "11A", type: "A", water: 1, energy: 1, name: "Menthe" },
     { code: "21N", type: "N", water: 2, energy: 1, name: "Haricot" },
@@ -128,28 +124,21 @@ function TerminalEnergéticien() {
     { code: "32A", type: "A", water: 3, energy: 2, name: "Roseau" },
     { code: "33N", type: "N", water: 3, energy: 3, name: "Riz" },
   ];
-  const errorMessages = {
-    invalid_format: "Entrée incorrecte.",
-    unknown_code: "Plante non trouvée.",
-    duplicate_type: "Types requis non respectés (il faut N, A, S).",
-    too_much_water: "Déséquilibre hydrique détecté.",
-    too_much_energy: "Surcharge énergétique détectée.",
-    ecosystem_stable: "ÉCOSYSTÈME STABLE – ACTIVATION EN COURS"
-  };
+
   const uniqueTypes = ["N", "A", "S"];
   const max_high_water = 1;
   const max_high_energy = 1;
 
-  function handleAddCode() {
+  const handleAddCode = () => {
     if (codes.length >= 3) return;
     if (!/^([1-3])([1-3])[NAS]$/.test(input)) {
-      setMessage(errorMessages.invalid_format);
+      setMessage("Entrée incorrecte.");
       setMsgColor("#ff3333");
       return;
     }
     const plant = plants.find(p => p.code === input);
     if (!plant) {
-      setMessage(errorMessages.unknown_code);
+      setMessage("Plante non trouvée.");
       setMsgColor("#ff3333");
       return;
     }
@@ -158,19 +147,19 @@ function TerminalEnergéticien() {
     setMessage(`Plante enregistrée : ${plant.name}`);
     setMsgColor("#00ff66");
     setInput("");
-  }
+  };
 
-  function handleRemoveLast() {
+  const handleRemoveLast = () => {
     if (codes.length === 0) return;
     setCodes(codes.slice(0, -1));
     setPlantsEntered(plantsEntered.slice(0, -1));
     setMessage("");
     setMsgColor("#00ff66");
-  }
+  };
 
-  function validateCombination() {
+  const validateCombination = () => {
     if (codes.length !== 3) return;
-    // Types requis (N, A, S)
+
     const types = plantsEntered.map(p => p.type);
     for (let t of uniqueTypes) {
       if (!types.includes(t)) {
@@ -179,58 +168,61 @@ function TerminalEnergéticien() {
         return;
       }
     }
-    // max_high_water
+
     const highWater = plantsEntered.filter(p => p.water === 3).length;
     if (highWater > max_high_water) {
       setMessage("Le système est déséquilibré");
       setMsgColor("#ff3333");
       return;
     }
-    // max_high_energy
+
     const highEnergy = plantsEntered.filter(p => p.energy === 3).length;
     if (highEnergy > max_high_energy) {
       setMessage("Le système est déséquilibré");
       setMsgColor("#ff3333");
       return;
     }
-    // Succès
+
     setMessage("La biosphère est équilibrée, Félicitations");
     setMsgColor("#00ff66");
-  }
 
-  React.useEffect(() => {
-    if (codes.length === 3) {
-      validateCombination();
+    if (sessionId && onWin) {
+      update(ref(db, `sessions/${sessionId}/miniGameStatus`), { "Biosphère": true });
+      onWin();
     }
+  };
+
+  useEffect(() => {
+    if (codes.length === 3) validateCombination();
   }, [codes]);
 
   return (
-    <div style={{fontFamily: 'Consolas, monospace', background: '#111', border: '2px solid #00ff66', borderRadius: 8, padding: '1.5em', color: '#00ff66', maxWidth: 500, margin: '0 auto'}}>
-      <div style={{marginBottom: '1em'}}>Format attendu : <b>(Eau)(Énergie)(Type)</b> &nbsp; Exemple : <b>21N</b></div>
-      <div style={{marginBottom: '1em'}}>
-        <div>Entrée du code : <input style={{width: 60, fontFamily: 'inherit', fontSize: '1em'}} maxLength={3} value={input} onChange={e => setInput(e.target.value.toUpperCase())} disabled={codes.length >= 3} />
-          <button style={{marginLeft: '1em', background: '#00ff66', color: '#111', border: 'none', borderRadius: 4, padding: '0.3em 1em', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'inherit', fontSize: '1em'}} onClick={handleAddCode} disabled={codes.length >= 3}>Valider code</button>
-          <button style={{marginLeft: '1em', background: '#222', color: '#00ff66', border: '1px solid #00ff66', borderRadius: 4, padding: '0.3em 1em', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'inherit', fontSize: '1em'}} onClick={handleRemoveLast} disabled={codes.length === 0}>Retour</button>
+    <div style={{ fontFamily: 'Consolas, monospace', background: '#111', border: '2px solid #00ff66', borderRadius: 8, padding: '1.5em', color: '#00ff66', maxWidth: 500, margin: '0 auto' }}>
+      <div style={{ marginBottom: '1em' }}>Format attendu : <b>(Eau)(Énergie)(Type)</b> &nbsp; Exemple : <b>21N</b></div>
+      <div style={{ marginBottom: '1em' }}>
+        <div>
+          Entrée du code : <input style={{ width: 60, fontFamily: 'inherit', fontSize: '1em' }} maxLength={3} value={input} onChange={e => setInput(e.target.value.toUpperCase())} disabled={codes.length >= 3} />
+          <button style={{ marginLeft: '1em', background: '#00ff66', color: '#111', border: 'none', borderRadius: 4, padding: '0.3em 1em', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'inherit', fontSize: '1em' }} onClick={handleAddCode} disabled={codes.length >= 3}>Valider code</button>
+          <button style={{ marginLeft: '1em', background: '#222', color: '#00ff66', border: '1px solid #00ff66', borderRadius: 4, padding: '0.3em 1em', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'inherit', fontSize: '1em' }} onClick={handleRemoveLast} disabled={codes.length === 0}>Supprimer dernier</button>
         </div>
       </div>
-      <div style={{marginBottom: '1em', fontSize: '0.95em'}}>
+
+      <div style={{ marginBottom: '1em', fontSize: '0.95em' }}>
         <b>Plantes enregistrées :</b>
         <ul>
-          {plantsEntered.map((p, idx) => (
-            <li key={idx}>{p.code} – {p.name}</li>
-          ))}
+          {plantsEntered.map((p, idx) => <li key={idx}>{p.code} – {p.name}</li>)}
         </ul>
       </div>
-      <div style={{marginBottom: '1em', fontSize: '0.95em'}}>
-        <b>Paramètres :</b><br/>
-        Eau : 1 = faible / 2 = moyen / 3 = élevé<br/>
-        Énergie : 1 = faible / 2 = moyen / 3 = élevé<br/>
+
+      <div style={{ marginBottom: '1em', fontSize: '0.95em' }}>
+        <b>Paramètres :</b><br />
+        Eau : 1 = faible / 2 = moyen / 3 = élevé<br />
+        Énergie : 1 = faible / 2 = moyen / 3 = élevé<br />
         Type : N = Nourricière / A = Assainissante / S = Stabilisatrice
       </div>
-      {codes.length === 3 ? null : <div style={{marginBottom: '1em', color: '#00ffcc'}}>Entrez trois codes pour valider la combinaison.</div>}
-      {message && <div style={{marginTop: '1.5em', color: msgColor, fontWeight: 'bold', fontSize: '1.1em'}}>{message}</div>}
+
+      {codes.length < 3 && <div style={{ marginBottom: '1em', color: '#00ffcc' }}>Entrez trois codes pour valider la combinaison.</div>}
+      {message && <div style={{ marginTop: '1.5em', color: msgColor, fontWeight: 'bold', fontSize: '1.1em' }}>{message}</div>}
     </div>
   );
 }
-
-export default Biosphere;
