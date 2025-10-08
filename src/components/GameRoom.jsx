@@ -6,6 +6,7 @@ import Timer from "./Timer";
 import PuzzleWater from "./PuzzleWater";
 import Grainotheque from "./Grainotheque"; // ✅ ton composant du mini-jeu
 import PuzzlePompe from "./PuzzlePompe";
+import Biosphere from "./Biosphere";
 
 function Room({ title, bg, children }) {
   return (
@@ -128,28 +129,32 @@ export default function GameRoom({ sessionId, playerId }) {
           />
         </Room>
       ) : (
-        <Room key={currentRoom} title={currentRoom} bg={roomInfo.bg}>
-          <Timer endTime={session.timer} />
-          {MiniGame && (
-            <MiniGame
+        currentRoom === "Biosphère" ? (
+          <Biosphere playerID={session.players[playerId]?.role} />
+        ) : (
+          <Room key={currentRoom} title={currentRoom} bg={roomInfo.bg}>
+            <Timer endTime={session.timer} />
+            {MiniGame && (
+              <MiniGame
+                sessionId={sessionId}
+                roomName={currentRoom.toLowerCase()}
+                playerRole={session.players[playerId]?.role}
+                onWin={() => handleWin(currentRoom)}
+              />
+            )}
+            <button
+              className="return-lobby-btn"
+              onClick={() => setCurrentRoom("controlRoom")}
+            >
+              Retour à la salle de contrôle
+            </button>
+            <Chat
               sessionId={sessionId}
-              roomName={currentRoom.toLowerCase()}
-              playerRole={session.players[playerId]?.role}
-              onWin={() => handleWin(currentRoom)}
+              playerId={playerId}
+              playerName={session.players[playerId]?.name || "??"}
             />
-          )}
-          <button
-            className="return-lobby-btn"
-            onClick={() => setCurrentRoom("controlRoom")}
-          >
-            Retour à la salle de contrôle
-          </button>
-          <Chat
-            sessionId={sessionId}
-            playerId={playerId}
-            playerName={session.players[playerId]?.name || "??"}
-          />
-        </Room>
+          </Room>
+        )
       )}
     </>
   );
