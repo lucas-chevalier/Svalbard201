@@ -23,8 +23,10 @@ const ProgressBar = ({ value, maxValue = 100 }) => {
   );
 };
 
-export default function SalleCrise({ sessionId, role, onWin }) {
+export default function SalleCrise({ sessionId, playerRole, playerId, session, onWin }) {
+  console.log("Role reçu:", playerRole);  // Debug
   const [phase, setPhase] = useState('diagnostic'); // diagnostic, decision, resultat
+  const [phaseTimer, setPhaseTimer] = useState(null);
   const [indicators, setIndicators] = useState({
     eau: { niveau: 70, pollution: 30, evaporation: 50 },
     energie: { production: 60, consommation: 40, rendement: 80 },
@@ -38,6 +40,37 @@ export default function SalleCrise({ sessionId, role, onWin }) {
   const choicesRef = ref(db, `sessions/${sessionId}/crise/choices`);
   const phaseRef = ref(db, `sessions/${sessionId}/crise/phase`);
 
+  // Gestion des phases et du timer
+  useEffect(() => {
+    const unsubPhase = onValue(phaseRef, (snap) => {
+      const val = snap.val();
+      if (val && val.currentPhase) {
+        setPhase(val.currentPhase);
+        if (val.phaseStartTime) {
+          const timeLeft = Math.max(0, (val.phaseStartTime + val.phaseDuration) - Date.now());
+          setPhaseTimer(timeLeft);
+        }
+      }
+    });
+
+    // Si c'est le chef de session (host), il gère les transitions de phase
+    const isHost = playerId === session?.host;
+    if (isHost) {
+      // Initialisation de la première phase si nécessaire
+      get(phaseRef).then((snap) => {
+        if (!snap.exists()) {
+          set(phaseRef, {
+            currentPhase: 'diagnostic',
+            phaseStartTime: Date.now(),
+            phaseDuration: 60000, // 60 secondes par phase
+          });
+        }
+      });
+    }
+
+    return unsubPhase;
+  }, [phaseRef, playerId, session]);
+
   // Chargement des données
   useEffect(() => {
     const unsubIndicators = onValue(indicatorRef, (snap) => {
@@ -50,17 +83,43 @@ export default function SalleCrise({ sessionId, role, onWin }) {
       if (val) setAllChoices(val);
     });
 
-    const unsubPhase = onValue(phaseRef, (snap) => {
-      const val = snap.val();
-      if (val) setPhase(val);
-    });
-
     return () => {
       unsubIndicators();
       unsubChoices();
-      unsubPhase();
     };
-  }, [indicatorRef, choicesRef, phaseRef]);
+  }, [indicatorRef, choicesRef]);
+
+  // Gestion du timer et des transitions de phase
+  useEffect(() => {
+    if (phaseTimer === null) return;
+
+    const timer = setInterval(() => {
+      const newTime = Math.max(0, phaseTimer - 1000);
+      setPhaseTimer(newTime);
+
+      // Si le timer arrive à 0 et que c'est le host, passer à la phase suivante
+      if (newTime === 0 && playerId === session?.host) {
+        const nextPhase = {
+          diagnostic: 'decision',
+          decision: 'resultat',
+          resultat: 'resultat' // Reste sur resultat
+        }[phase];
+
+        set(phaseRef, {
+          currentPhase: nextPhase,
+          phaseStartTime: Date.now(),
+          phaseDuration: 60000, // 60 secondes par phase
+        });
+
+        // Si on passe en phase résultat, calculer le score
+        if (nextPhase === 'resultat') {
+          calculateScore();
+        }
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [phaseTimer, phase, playerId, session?.host]);
 
   const choices = {
     Hydrologue: [
@@ -68,7 +127,7 @@ export default function SalleCrise({ sessionId, role, onWin }) {
       { id: 'distribuer_rapide', label: 'Distribution rapide', desc: '+énergie, -biosphère' },
       { id: 'fermer_circuits', label: 'Fermer circuits', desc: '+sécurité, -souplesse' }
     ],
-    Energéticien: [
+    'Énergéticien': [
       { id: 'stabiliser_reseau', label: 'Stabiliser réseau', desc: '+fiabilité, -production' },
       { id: 'maximiser_rendement', label: 'Maximiser rendement', desc: '+énergie, +pollution' },
       { id: 'rediriger_vers_biosphere', label: 'Rediriger vers biosphère', desc: '+coop, -autonomie' }
@@ -82,7 +141,7 @@ export default function SalleCrise({ sessionId, role, onWin }) {
 
   const handleChoice = (choice) => {
     setPlayerChoice(choice);
-    set(ref(db, `sessions/${sessionId}/crise/choices/${role}`), choice);
+    set(ref(db, `sessions/${sessionId}/crise/choices/${playerRole}`), choice);
   };
 
   const calculateScore = () => {
@@ -144,8 +203,18 @@ export default function SalleCrise({ sessionId, role, onWin }) {
     return scoreGlobal;
   };
 
+  const normalizeRole = (role) => {
+    // Normalise le rôle pour gérer les différences d'accents
+    if (role === 'Energeticien' || role === 'Energéticien' || role === 'Énergéticien') {
+      return 'Énergéticien';
+    }
+    return role;
+  };
+
   const renderDiagnostic = () => {
-    switch(role) {
+    const normalizedRole = normalizeRole(playerRole);
+    console.log("Switch case avec role normalisé:", normalizedRole);  // Debug
+    switch(normalizedRole) {
       case 'Hydrologue':
         return (
           <div className="diagnostic-panel">
@@ -164,7 +233,7 @@ export default function SalleCrise({ sessionId, role, onWin }) {
             </div>
           </div>
         );
-      case 'Energéticien':
+      case 'Énergéticien':
         return (
           <div className="diagnostic-panel">
             <h3>Diagnostic Énergétique</h3>
@@ -201,12 +270,22 @@ export default function SalleCrise({ sessionId, role, onWin }) {
           </div>
         );
       default:
-        return <p>Rôle non reconnu</p>;
+        console.log("Rôle non reconnu:", playerRole);  // Debug
+        return (
+          <div className="diagnostic-panel">
+            <h3>Rôle non reconnu</h3>
+            <p>Rôle reçu : {playerRole || 'aucun'}</p>
+            <p>Rôles attendus : Hydrologue, Énergéticien, Biologiste</p>
+            <p className="debug-info" style={{fontSize: '0.8em', color: '#666'}}>
+              Note technique : Rôle normalisé : {normalizeRole(playerRole)}
+            </p>
+          </div>
+        );
     }
   };
 
   const renderDecision = () => {
-    const roleChoices = choices[role] || [];
+    const roleChoices = choices[playerRole] || [];
     return (
       <div className="decision-panel">
         <h3>Prenez votre décision</h3>
@@ -256,9 +335,15 @@ export default function SalleCrise({ sessionId, role, onWin }) {
   return (
     <div className="salle-crise">
       <div className="phase-indicator">
-        <div className={`phase ${phase === 'diagnostic' ? 'active' : ''}`}>1. Diagnostic</div>
-        <div className={`phase ${phase === 'decision' ? 'active' : ''}`}>2. Décision</div>
-        <div className={`phase ${phase === 'resultat' ? 'active' : ''}`}>3. Résultat</div>
+        <div className={`phase ${phase === 'diagnostic' ? 'active' : ''}`}>
+          1. Diagnostic {phase === 'diagnostic' && phaseTimer && <span>({Math.ceil(phaseTimer / 1000)}s)</span>}
+        </div>
+        <div className={`phase ${phase === 'decision' ? 'active' : ''}`}>
+          2. Décision {phase === 'decision' && phaseTimer && <span>({Math.ceil(phaseTimer / 1000)}s)</span>}
+        </div>
+        <div className={`phase ${phase === 'resultat' ? 'active' : ''}`}>
+          3. Résultat {phase === 'resultat' && phaseTimer && <span>({Math.ceil(phaseTimer / 1000)}s)</span>}
+        </div>
       </div>
 
       <div className="main-content">

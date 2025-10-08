@@ -92,7 +92,6 @@ export default function GameRoom({ sessionId, playerId }) {
     { name: "Salle radio", bg: "/backgrounds/grainotheque.png" },
     { name: "Biosphère", bg: "/backgrounds/biosphereB.png" },
     { name: "Débarras", bg: "/backgrounds/debarras.jpg" },
-    { name: "Salle de survie", bg: "/backgrounds/survie.jpg" },
     { name: "Salle de crise", bg: "/backgrounds/sallecrise.png" },
 
   ].map((r, i) => ({ ...r, order: i + 1 }));
@@ -217,8 +216,9 @@ export default function GameRoom({ sessionId, playerId }) {
                 sessionId={sessionId}
                 roomName={currentRoom.toLowerCase()}
                 playerRole={session.players[playerId]?.role}
-                players={session.players}
                 playerId={playerId}
+                session={session}
+                players={session.players}
                 onWin={() => handleWin(currentRoom)}
               />
             )}
