@@ -13,7 +13,7 @@ const botaniqueData = [
   { nom: "Phragmites-RS (Roseau)", eau: "Élevé", energie: "Faible", type: "Assainissante" },
 ];
 
-export default function Biosphere({ playerRole, sessionId, onWin }) {
+export default function Biosphere({ playerRole, sessionId, onWin, players, playerId, roomName }) {
   let infoContent;
 
   if (playerRole === "Hydrologue") {

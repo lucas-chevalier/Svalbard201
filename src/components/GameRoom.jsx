@@ -7,6 +7,7 @@ import Grainotheque from "./Grainotheque";
 import PuzzlePompe from "./PuzzlePompe";
 import Biosphere from "./Biosphere";
 import PuzzleEnergy from "./PuzzleEnergy";
+import PuzzleDebarras from "./PuzzleDebarras";
 
 function Room({ title, bg, children }) {
   const defaultBg = "/backgrounds/controlRoom.jpg";
@@ -111,6 +112,7 @@ export default function GameRoom({ sessionId, playerId }) {
     "Pompe hydraulique": PuzzlePompe,
     "Centrale électrique": PuzzleEnergy,
     "Biosphère": Biosphere,
+    "Débarras": PuzzleDebarras,
   };
 
   // --- Gestion de la validation d'une salle
@@ -206,6 +208,8 @@ export default function GameRoom({ sessionId, playerId }) {
                 sessionId={sessionId}
                 roomName={currentRoom.toLowerCase()}
                 playerRole={session.players[playerId]?.role}
+                players={session.players}
+                playerId={playerId}
                 onWin={() => handleWin(currentRoom)}
               />
             )}

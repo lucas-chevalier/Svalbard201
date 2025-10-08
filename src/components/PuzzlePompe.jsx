@@ -4,7 +4,7 @@ import { ref, onValue, update, set } from "firebase/database";
 
 // PuzzlePompe connecté à Realtime DB sous sessions/{sessionId}/pompe
 // Props: sessionId (obligatoire), playerRole (optionnel), onSolve (callback)
-export default function PuzzlePompe({ sessionId, playerRole, onWin }) {
+export default function PuzzlePompe({ sessionId, playerRole, onWin, players, playerId, roomName }) {
   const [state, setState] = useState(null);
   const [logs, setLogs] = useState([]);
   

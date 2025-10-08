@@ -2,12 +2,17 @@ import React, { useEffect, useState, useRef } from "react";
 import { db } from "../firebase";
 import { ref, onValue, update, set } from "firebase/database";
 
-export default function PuzzleEnergy({ sessionId, playerRole, onWin }) {
+export default function PuzzleEnergy({ sessionId, playerRole, onWin, players, playerId, roomName }) {
   const [state, setState] = useState(null);
   const [logs, setLogs] = useState([]);
   const [hintVisible, setHintVisible] = useState(false);
   const lastActivity = useRef(Date.now());
   const energyRefPath = `sessions/${sessionId}/energy`;
+
+  // États locaux pour les sliders (affichage immédiat)
+  const [localHeatR, setLocalHeatR] = useState(1);
+  const [localPumpR, setLocalPumpR] = useState(1);
+  const [localSerreR, setLocalSerreR] = useState(1);
 
   // Ajout d'un indice de contexte dans le journal des logs à l'entrée (une seule fois)
   useEffect(() => {
@@ -51,9 +56,19 @@ export default function PuzzleEnergy({ sessionId, playerRole, onWin }) {
         set(r, defaultState);
         setState(defaultState);
         setLogs([]);
+        // Synchroniser les états locaux
+        setLocalHeatR(defaultState.config.modules.heat.R);
+        setLocalPumpR(defaultState.config.modules.pump.R);
+        setLocalSerreR(defaultState.config.modules.serre.R);
       } else {
         setState(v);
         setLogs(v.logs || []);
+        // Synchroniser les états locaux avec Firebase
+        if (v.config?.modules) {
+          setLocalHeatR(v.config.modules.heat?.R || 1);
+          setLocalPumpR(v.config.modules.pump?.R || 1);
+          setLocalSerreR(v.config.modules.serre?.R || 1);
+        }
       }
     });
     return () => unsub();
@@ -115,8 +130,11 @@ export default function PuzzleEnergy({ sessionId, playerRole, onWin }) {
     const { power: newPower, total } = computePowersFromConfig(cfg);
     const updates = { config: cfg, power: newPower, total };
     if (state.blackout) updates.blackout = false;
-    update(ref(db, energyRefPath), updates);
+    
+    // Force la mise à jour complète pour éviter les problèmes de synchronisation
+    update(ref(db, energyRefPath), updates).catch(console.error);
     markActivity();
+    
     if (shouldLog) {
       const vstr = Number(cfg.voltage || 0).toFixed(1);
       const who = actor || 'Énergéticien';
@@ -254,17 +272,15 @@ export default function PuzzleEnergy({ sessionId, playerRole, onWin }) {
               />
               <div style={{marginTop:12}}>
                 <div>Chauffage — P: <b>{power.heat}</b> kW</div>
-                <div>Résistance R: <b>{config.modules.heat.R}</b></div>
+                <div>Résistance R: <b>{localHeatR}</b></div>
                 <input 
                   type="range" 
                   min={1} 
                   max={9} 
                   step={1} 
-                  value={config.modules.heat.R} 
+                  value={localHeatR} 
                   disabled={state.blackout}
-                  onChange={(e) => updateConfig({ 
-                    modules: { heat: { ...config.modules.heat, R: Number(e.target.value) } } 
-                  }, 'Énergéticien', false)}
+                  onChange={(e) => setLocalHeatR(Number(e.target.value))}
                   onMouseUp={(e) => updateConfig({ 
                     modules: { heat: { ...config.modules.heat, R: Number(e.target.value) } } 
                   }, 'Énergéticien', true)}
@@ -294,17 +310,15 @@ export default function PuzzleEnergy({ sessionId, playerRole, onWin }) {
               <h4>État des pompes</h4>
               <div>Pompe: <b>{power.pump}</b> kW</div>
               <div>Voltage système: <b>{config.voltage.toFixed(1)}</b> V</div>
-              <div>Résistance pompe: <b>{config.modules.pump.R}</b> Ω</div>
+              <div>Résistance pompe: <b>{localPumpR}</b> Ω</div>
               <input 
                 type="range" 
                 min={1} 
                 max={9} 
                 step={1} 
-                value={config.modules.pump.R} 
+                value={localPumpR} 
                 disabled={state.blackout}
-                onChange={(e) => updateConfig({ 
-                  modules: { pump: { ...config.modules.pump, R: Number(e.target.value) } } 
-                }, 'Hydrologue', false)}
+                onChange={(e) => setLocalPumpR(Number(e.target.value))}
                 onMouseUp={(e) => updateConfig({ 
                   modules: { pump: { ...config.modules.pump, R: Number(e.target.value) } } 
                 }, 'Hydrologue', true)}
@@ -319,17 +333,15 @@ export default function PuzzleEnergy({ sessionId, playerRole, onWin }) {
               <h4>Serre</h4>
               <div>Serre: <b>{power.serre}</b> kW</div>
               <div>Voltage système: <b>{config.voltage.toFixed(1)}</b> V</div>
-              <div>Résistance serre: <b>{config.modules.serre.R}</b> Ω</div>
+              <div>Résistance serre: <b>{localSerreR}</b> Ω</div>
               <input 
                 type="range" 
                 min={1} 
                 max={9} 
                 step={1} 
-                value={config.modules.serre.R} 
+                value={localSerreR} 
                 disabled={state.blackout}
-                onChange={(e) => updateConfig({ 
-                  modules: { serre: { ...config.modules.serre, R: Number(e.target.value), connected: true } } 
-                }, 'Biologiste', false)}
+                onChange={(e) => setLocalSerreR(Number(e.target.value))}
                 onMouseUp={(e) => updateConfig({ 
                   modules: { serre: { ...config.modules.serre, R: Number(e.target.value), connected: true } } 
                 }, 'Biologiste', true)}

@@ -30,7 +30,7 @@ const QUESTIONS = [
   },
 ];
 
-export default function Grainotheque({ sessionId, roomName = "grainotheque", onWin }) {
+export default function Grainotheque({ sessionId, roomName = "grainotheque", onWin, playerRole, players, playerId }) {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [response, setResponse] = useState("");
   const [validated, setValidated] = useState(false);
