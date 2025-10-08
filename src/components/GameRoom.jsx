@@ -85,12 +85,12 @@ export default function GameRoom({ sessionId, playerId }) {
   if (!session?.host || roomsOrder.length > 0 || playerId !== session.host) return;
 
   const defaultOrder = [
-    { name: "Salle radio", bg: "/backgrounds/grainotheque.png" },
-    { name: "Pompe hydraulique", bg: "/backgrounds/water.jpg" },
     { name: "Centrale électrique", bg: "/backgrounds/centrale.jpg" },
+    { name: "Pompe hydraulique", bg: "/backgrounds/water.jpg" },
+    { name: "Salle radio", bg: "/backgrounds/grainotheque.png" },
     { name: "Biosphère", bg: "/backgrounds/biosphereB.png" },
     { name: "Débarras", bg: "/backgrounds/debarras.jpg" },
-    { name: "Système de survie", bg: "/backgrounds/survie.jpg" },
+    { name: "Salle de survie", bg: "/backgrounds/survie.jpg" },
   ].map((r, i) => ({ ...r, order: i + 1 }));
 
   set(orderRef, defaultOrder).then(() => setRoomsOrder(defaultOrder));
