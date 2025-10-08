@@ -59,7 +59,7 @@ export default function PuzzlePompe({ sessionId, playerRole, onWin }) {
         onValue(currentRef, (snap2) => {
           const prev = snap2.val() || {};
           const defaultState = {
-            pressure: { p1: 0, p2: 0, p3: 0 },
+            pressure: { p1: 50, p2: 50, p3: 2 },
             valves: { v1: "open", v2: "open", v3: "open" },
             pumpPower: 0,
             leak_zone: "p3",
@@ -119,15 +119,30 @@ export default function PuzzlePompe({ sessionId, playerRole, onWin }) {
       } else if (isSurcharge) {
         next.p1 = Math.min(100, next.p1 + 3);
       } else {
-        if (next.p1 < 80) next.p1 = 80;
-        if (pump > 90) {
-          next.p1 = Math.min(100, next.p1 + 3);
-        } else {
-          // Oscillation autour de 80 sans dépasser 80
+        // Si V3 est ouverte, P1 oscille autour de 50
+        if (v.v3 === "open") {
+          if (next.p1 < 50) {
+            next.p1 = Math.min(50, next.p1 + 2);
+          } else if (next.p1 > 50) {
+            next.p1 = Math.max(50, next.p1 - 2);
+          }
+          // Oscillation autour de 50
           let oscVal = next.p1 + osc();
-          if (oscVal > 80) oscVal = 80;
-          if (oscVal < 0) oscVal = 0;
+          if (oscVal > 55) oscVal = 55;
+          if (oscVal < 45) oscVal = 45;
           next.p1 = oscVal;
+        } else {
+          // Si V3 est fermée, P1 monte à 80
+          if (next.p1 < 80) next.p1 = Math.min(80, next.p1 + 3);
+          if (pump > 90) {
+            next.p1 = Math.min(100, next.p1 + 3);
+          } else {
+            // Oscillation autour de 80 sans dépasser 80
+            let oscVal = next.p1 + osc();
+            if (oscVal > 80) oscVal = 80;
+            if (oscVal < 75) oscVal = 75;
+            next.p1 = oscVal;
+          }
         }
       }
       // P2
@@ -136,14 +151,30 @@ export default function PuzzlePompe({ sessionId, playerRole, onWin }) {
       } else if (isSurcharge) {
         next.p2 = Math.min(100, next.p2 + 3);
       } else {
-        if (next.p2 < 80) next.p2 = 80;
-        if (pump > 90) {
-          next.p2 = Math.min(100, next.p2 + 3);
-        } else {
+        // Si V3 est ouverte, P2 oscille autour de 50
+        if (v.v3 === "open") {
+          if (next.p2 < 50) {
+            next.p2 = Math.min(50, next.p2 + 2);
+          } else if (next.p2 > 50) {
+            next.p2 = Math.max(50, next.p2 - 2);
+          }
+          // Oscillation autour de 50
           let oscVal = next.p2 + osc();
-          if (oscVal > 80) oscVal = 80;
-          if (oscVal < 0) oscVal = 0;
+          if (oscVal > 55) oscVal = 55;
+          if (oscVal < 45) oscVal = 45;
           next.p2 = oscVal;
+        } else {
+          // Si V3 est fermée, P2 monte à 80
+          if (next.p2 < 80) next.p2 = Math.min(80, next.p2 + 3);
+          if (pump > 90) {
+            next.p2 = Math.min(100, next.p2 + 3);
+          } else {
+            // Oscillation autour de 80 sans dépasser 80
+            let oscVal = next.p2 + osc();
+            if (oscVal > 80) oscVal = 80;
+            if (oscVal < 75) oscVal = 75;
+            next.p2 = oscVal;
+          }
         }
       }
       // P3 (oscillation aussi, mais bornée à 80 sauf si pompe >90)
@@ -160,6 +191,18 @@ export default function PuzzlePompe({ sessionId, playerRole, onWin }) {
           if (oscVal < 0) oscVal = 0;
           next.p3 = oscVal;
         }
+      } else if (v.v3 === "closed" && pump > 50 && pump < 75) {
+        // Nouvelle condition : vanne P3 fermée et pompe entre 50 et 75 -> P3 augmente à 30
+        if (next.p3 < 30) {
+          next.p3 = Math.min(30, next.p3 + 3);
+        } else if (next.p3 > 30) {
+          next.p3 = Math.max(30, next.p3 - 2);
+        }
+        // Oscillation légère autour de 30
+        let oscVal = next.p3 + osc() * 0.5;
+        if (oscVal > 35) oscVal = 35;
+        if (oscVal < 25) oscVal = 25;
+        next.p3 = oscVal;
       } else {
         // sinon, tendance à baisser
         next.p3 = Math.max(0, next.p3 - 3);
@@ -189,21 +232,30 @@ export default function PuzzlePompe({ sessionId, playerRole, onWin }) {
         clearTimeout(window.__pompeSurchargeTimeout);
         window.__pompeSurchargeTimeout = null;
       }
-      // P3 se stabilise à 50 si V3 fermée ET pompe entre 75 et 85 inclus
+            // P3 se stabilise à 50 si V3 fermée ET pompe entre 75 et 85 inclus
       if (v.v3 === "closed" && pump >= 75 && pump <= 85) {
         if (next.p3 < 50) {
           next.p3 = Math.min(50, next.p3 + 4);
         } else if (next.p3 > 50) {
           next.p3 = Math.max(50, next.p3 - 3);
         }
-        // sinon, reste à 50
+        // Oscillation autour de 50
+        let oscVal = next.p3 + osc();
+        if (oscVal > 52) oscVal = 52;
+        if (oscVal < 48) oscVal = 48;
+        next.p3 = oscVal;
       } else {
-        // sinon, tendance à baisser
-        next.p3 = Math.max(0, next.p3 - 3);
-      }
-      // Fuite
-      if (leak === "p3" && v.v3 === "open") {
-        next.p3 = Math.max(0, next.p3 - 8);
+        // Fuite : oscillation entre 0 et 5 pour simuler très basse pression
+        if (next.p3 > 5) {
+          next.p3 = Math.max(0, next.p3 - 2);
+        } else if (next.p3 < 0) {
+          next.p3 = Math.min(5, next.p3 + 1);
+        }
+        // Oscillation autour de 2.5 (entre 0 et 5)
+        let oscVal = next.p3 + (Math.floor(Math.random() * 6) - 2.5); // -2.5 à +2.5
+        if (oscVal > 5) oscVal = 5;
+        if (oscVal < 0) oscVal = 0;
+        next.p3 = Math.round(oscVal);
       }
       // Crash si pompe >= 100
       let crash = false;
@@ -337,7 +389,7 @@ export default function PuzzlePompe({ sessionId, playerRole, onWin }) {
             <div>
               {(() => {
                 const avg = (pressure.p1 + pressure.p2 + pressure.p3) / 3;
-                if (avg < 30) return <span style={{color:'#b30000'}}>Plantes sèches</span>;
+                if (avg < 40) return <span style={{color:'#ff4444', fontWeight:'bold'}}>⚠️ Plantes sèches - ATTENTION</span>;
                 if (avg < 50) return <span style={{color:'#ffaa00'}}>Stress hydrique</span>;
                 if (avg < 70) return <span style={{color:'#ffaa00'}}>Stress hydrique</span>;
                 if (avg < 80) return <span style={{color:'#00cc44'}}>OK</span>;
@@ -345,7 +397,14 @@ export default function PuzzlePompe({ sessionId, playerRole, onWin }) {
               })()}
             </div>
             <div style={{marginTop:8}}>
-              Retour terrain : {pressure.p1 < 30 || pressure.p2 < 30 || pressure.p3 < 30 ? "Certains secteurs manquent d'eau" : "Pas d'alerte"}
+              Retour terrain : {(() => {
+                const avg = (pressure.p1 + pressure.p2 + pressure.p3) / 3;
+                if (pressure.p1 < 30 || pressure.p2 < 30 || pressure.p3 < 30) return "Certains secteurs manquent d'eau";
+                if (avg >= 75 && avg <= 85) return "Conditions optimales pour la croissance";
+                if (avg < 75) return "Irrigation insuffisante, croissance ralentie";
+                if (avg > 85) return "Excès d'eau détecté, risque de pourriture";
+                return "Surveillance en cours";
+              })()}
             </div>
           </div>
         )}
