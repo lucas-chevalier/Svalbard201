@@ -64,6 +64,13 @@ export default function PuzzleEnergy({ sessionId, playerRole, onWin }) {
     if (hintVisible) setHintVisible(false);
   };
 
+  // Couleur du badge Total
+  const getTotalBadgeColor = (total) => {
+    if (Math.abs(total - 9) <= 0.2) return '#4caf50'; // proche de l'objectif
+    if (total < 9) return '#ffaa00'; // en-dessous
+    return '#d32f2f'; // au-dessus
+  };
+
   // Ajoute un log synchronisé dans Firebase (et donc pour tous les joueurs)
   const pushLog = (text) => {
     const currentLogs = (state?.logs || []);
@@ -203,6 +210,20 @@ export default function PuzzleEnergy({ sessionId, playerRole, onWin }) {
     },
   };
 
+  const isNearTarget = Math.abs(total - 9) <= 0.2;
+  const badgeStyle = {
+    display: 'inline-block',
+    padding: '8px 12px',
+    borderRadius: 16,
+    background: getTotalBadgeColor(total),
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+    transition: 'transform 300ms, box-shadow 300ms',
+    transform: isNearTarget ? 'scale(1.06)' : 'scale(1)',
+    boxShadow: isNearTarget ? '0 0 14px rgba(76,175,80,0.9)' : 'none'
+  };
+
   const isEnerg = !playerRole || playerRole === 'Énergéticien';
   const isHydro = playerRole === 'Hydrologue';
   const isBio = playerRole === 'Biologiste';
@@ -252,7 +273,18 @@ export default function PuzzleEnergy({ sessionId, playerRole, onWin }) {
                   }, 'Énergéticien', true)} 
                 />
                 <div style={{marginTop:8}}>
-                  Total: <b>{total}</b> kW (objectif: 9 kW)
+                  <div style={{display:'flex', alignItems:'center', gap:8}}>
+                    <div style={{flex:1}}>
+                      <div style={{background:'#eee', height:12, borderRadius:6, overflow:'hidden'}}>
+                        <div style={{width:`${Math.min(100, (total / 9) * 100)}%`, height:'100%', background:getTotalBadgeColor(total), transition:'width 300ms'}} />
+                      </div>
+                      <div style={{fontSize:13, color:'#333', marginTop:6, fontWeight:700}}>Objectif : 9 kW</div>
+                    </div>
+                    <div style={{minWidth:110, textAlign:'right', display:'flex', flexDirection:'column', alignItems:'flex-end'}}>
+                      <span style={badgeStyle}>{total} kW</span>
+                      {isNearTarget && <span style={{fontSize:12, color:'#4caf50', marginTop:6, fontWeight:600}}>✓ Objectif atteint</span>}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

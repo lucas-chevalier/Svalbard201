@@ -42,9 +42,21 @@ export default function PuzzlePompe({ sessionId, playerRole, onWin }) {
   const [pressure, setPressure] = useState({ p1: 0, p2: 0, p3: 0 });
   const [valves, setValves] = useState({ v1: "open", v2: "open", v3: "open" });
   const [pumpPower, setPumpPower] = useState(0);
+  const [showPumpHint, setShowPumpHint] = useState(false);
   const [leakZone, setLeakZone] = useState("p3");
   const [crashed, setCrashed] = useState(false);
   const [solved, setSolved] = useState(false);
+
+  // Retourne une couleur du rouge->vert selon la valeur de la pompe
+  const getPumpColor = (p) => {
+    // Règle : 0-19 rouge, 20-74 orange, 75-85 vert, 86-99 orange, 100 rouge
+    if (p <= 0) return '#d32f2f';
+    if (p < 20) return '#d32f2f';
+    if (p < 75) return '#ff9800';
+    if (p <= 85) return '#2e7d32';
+    if (p < 100) return '#ff9800';
+    return '#d32f2f';
+  };
 
     // init & listen
   useEffect(() => {
@@ -108,6 +120,19 @@ export default function PuzzlePompe({ sessionId, playerRole, onWin }) {
       const pump = pumpPower;
       const v = { ...valves };
       const leak = leakZone;
+      // Si la pompe est complètement arrêtée, tous les capteurs baissent vers 0
+      if (pump === 0) {
+        // décrément plus marqué pour simuler la chute de pression
+        next.p1 = Math.max(0, Math.round(next.p1 - 6));
+        next.p2 = Math.max(0, Math.round(next.p2 - 6));
+        next.p3 = Math.max(0, Math.round(next.p3 - 4));
+        // Mettre à jour et quitter le tick
+        update(ref(db, pompeRefPath), { pressure: next, crashed: false, solved: false });
+        setPressure(next);
+        setCrashed(false);
+        setSolved(false);
+        return;
+      }
       // --- Gestion des vannes, surcharge et oscillation ---
       // Surcharge : si pompe >90% et <100%, P1/P2 montent vite et pompe chute à 50% après 3s
       const isSurcharge = pump > 90 && pump < 100;
@@ -360,25 +385,33 @@ export default function PuzzlePompe({ sessionId, playerRole, onWin }) {
           {isEnerg && (
             <>
               <h4>Contrôle de la pompe</h4>
-              <div>Puissance actuelle : <b>{pumpPower}%</b></div>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                value={pumpPower}
-                onChange={e => changePump(Number(e.target.value))}
-                onMouseUp={e => logPumpFinal(Number(e.target.value))}
-                onTouchEnd={e => logPumpFinal(Number(e.target.value))}
-                disabled={crashed || solved}
-              />
+              <div>Puissance actuelle : <b style={{color: getPumpColor(pumpPower)}}>{pumpPower}%</b></div>
+              <div style={{position:'relative', padding:'8px 0', marginTop:6}}>
+                {/* zone recommandée (visuelle seulement) */}
+                <div style={{position:'absolute', left:`${75}%`, right:`${100-85}%`, top:0, bottom:0, background:'rgba(76,175,80,0.06)', pointerEvents:'none', borderRadius:6}} />
+                <input
+                  style={{width:'100%', transition:'all 200ms'}}
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={pumpPower}
+                  onChange={e => changePump(Number(e.target.value))}
+                  onMouseUp={e => logPumpFinal(Number(e.target.value))}
+                  onTouchEnd={e => logPumpFinal(Number(e.target.value))}
+                  disabled={crashed || solved}
+                />
+              </div>
             </>
           )}
           <h4>Pressions</h4>
-          <ul>
-            <li>P1 : {pressure.p1}</li>
-            <li>P2 : {pressure.p2}</li>
-            <li>P3 : {pressure.p3}</li>
-          </ul>
+          <div>
+            <div style={{marginBottom:6}}>P1: <b>{pressure.p1}</b></div>
+            <div style={{background:'#eee', height:10, borderRadius:6, overflow:'hidden', marginBottom:8}}><div style={{width:`${Math.min(100, pressure.p1)}%`, height:'100%', background: pressure.p1>=75? '#4caf50' : pressure.p1>=40? '#ffaa00' : '#ff4444', transition:'width 400ms, background-color 400ms'}}/></div>
+            <div style={{marginBottom:6}}>P2: <b>{pressure.p2}</b></div>
+            <div style={{background:'#eee', height:10, borderRadius:6, overflow:'hidden', marginBottom:8}}><div style={{width:`${Math.min(100, pressure.p2)}%`, height:'100%', background: pressure.p2>=75? '#4caf50' : pressure.p2>=40? '#ffaa00' : '#ff4444', transition:'width 400ms, background-color 400ms'}}/></div>
+            <div style={{marginBottom:6}}>P3: <b>{pressure.p3}</b></div>
+            <div style={{background:'#eee', height:10, borderRadius:6, overflow:'hidden', marginBottom:8}}><div style={{width:`${Math.min(100, pressure.p3)}%`, height:'100%', background: pressure.p3>=75? '#4caf50' : pressure.p3>=40? '#ffaa00' : '#ff4444', transition:'width 400ms, background-color 400ms'}}/></div>
+          </div>
           {/* Indice sur la fuite */}
           {/* Indice déplacé dans le journal des logs */}
           {crashed && isEnerg && <button onClick={restart} style={{marginTop:8}}>Redémarrer la pompe</button>}
