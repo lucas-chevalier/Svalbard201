@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { ref, onChildAdded, push, onValue } from "firebase/database";
 import { db } from "../firebase";
 
-export default function Chat({ sessionId, playerId, playerName }) {
+export default function Chat({ sessionId, playerId, playerName, onAccessAllRooms }) {
   const [msgs, setMsgs] = useState([]);
   const [text, setText] = useState("");
   const [players, setPlayers] = useState({});
@@ -32,18 +32,21 @@ export default function Chat({ sessionId, playerId, playerName }) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [msgs]);
 
-  // Envoi de message avec rôle inclus
+  // Envoi de message avec gestion de la commande
   const send = async () => {
     if (!text.trim()) return;
+    if (text.trim().toLowerCase() === "/accessall") {
+      if (typeof onAccessAllRooms === "function") onAccessAllRooms();
+      setText("");
+      return;
+    }
     const role = players?.[playerId]?.role || "Joueur";
-
     await push(ref(db, `sessions/${sessionId}/chat`), {
       sender: playerName,
       role,
       text,
       timestamp: Date.now(),
     });
-
     setText("");
   };
 
@@ -64,7 +67,7 @@ export default function Chat({ sessionId, playerId, playerName }) {
         top: 0,
         bottom: 0,
         width: "340px",
-        height: "100vh", // <-- Ajouté ici
+        height: "100vh",
         background: "rgba(0,20,0,0.92)",
         borderLeft: "2px solid #00ff66",
         display: "flex",

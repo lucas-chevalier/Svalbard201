@@ -57,6 +57,7 @@ export default function GameRoom({ sessionId, playerId }) {
   const [currentRoom, setCurrentRoom] = useState("controlRoom");
   const [miniGameStatus, setMiniGameStatus] = useState({});
   const [roomsOrder, setRoomsOrder] = useState([]);
+  const [forceAccessAll, setForceAccessAll] = useState(false);
 
   const sessionRef = ref(db, `sessions/${sessionId}`);
   const miniGameRef = ref(db, `sessions/${sessionId}/miniGameStatus`);
@@ -93,6 +94,7 @@ export default function GameRoom({ sessionId, playerId }) {
     { name: "Débarras", bg: "/backgrounds/debarras.jpg" },
     { name: "Salle de survie", bg: "/backgrounds/survie.jpg" },
     { name: "Salle de crise", bg: "/backgrounds/sallecrise.png" },
+
   ].map((r, i) => ({ ...r, order: i + 1 }));
 
   set(orderRef, defaultOrder).then(() => setRoomsOrder(defaultOrder));
@@ -116,6 +118,7 @@ export default function GameRoom({ sessionId, playerId }) {
     "Biosphère": Biosphere,
     "Débarras": PuzzleDebarras,
     "Salle de crise": SalleCrise,
+
   };
 
   // --- Gestion de la validation d'une salle
@@ -131,6 +134,9 @@ export default function GameRoom({ sessionId, playerId }) {
   const handleLeaveRoom = () => {
     setCurrentRoom("controlRoom");
   };
+
+  // --- Callback pour accès à toutes les salles
+  const handleAccessAllRooms = () => setForceAccessAll(true);
 
   return (
     <>
@@ -164,14 +170,13 @@ export default function GameRoom({ sessionId, playerId }) {
               pointerEvents: "auto",
               gridTemplateColumns: "repeat(3, 1fr)",
               maxWidth: "900px",
-              marginRight: "360px", // espace réservé pour le chat
+              marginRight: "360px",
               marginLeft: "40px",
               marginTop: "20px",
             }}
           >
             {roomsOrder.map((room, index) => {
-              const isUnlocked =
-                index === 0 || miniGameStatus[roomsOrder[index - 1]?.name];
+              const isUnlocked = forceAccessAll || index === 0 || miniGameStatus[roomsOrder[index - 1]?.name];
               const isCompleted = miniGameStatus[room.name];
 
               return (
@@ -200,6 +205,7 @@ export default function GameRoom({ sessionId, playerId }) {
             sessionId={sessionId}
             playerId={playerId}
             playerName={session.players[playerId]?.name || "??"}
+            onAccessAllRooms={handleAccessAllRooms}
           />
         </Room>
       ) : (
@@ -224,6 +230,7 @@ export default function GameRoom({ sessionId, playerId }) {
             sessionId={sessionId}
             playerId={playerId}
             playerName={session.players[playerId]?.name || "??"}
+            onAccessAllRooms={handleAccessAllRooms}
           />
         </Room>
       )}
