@@ -10,7 +10,7 @@ export default function Map() {
         <div className="room biosphere">Biosphère</div>
         <div className="room seedbank">Grainothèque</div>
         <div className="room power">Centrale électrique</div>
-        <div className="room water">Salle de traitement (eau)</div>
+  <div className="room water">Pompe hydraulique</div>
       </div>
     </div>
   );

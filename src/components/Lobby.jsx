@@ -76,7 +76,7 @@ export default function Lobby({ onJoin }) {
         } 
       },
       miniGameStatus: { 
-        "Salle de traitement (eau)": false,
+  "Pompe hydraulique": false,
         "Débarras": false,
         "Système de survie": false,
         "Biosphère": false,
