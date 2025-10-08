@@ -8,6 +8,7 @@ import PuzzlePompe from "./PuzzlePompe";
 import Biosphere from "./Biosphere";
 import PuzzleEnergy from "./PuzzleEnergy";
 import PuzzleDebarras from "./PuzzleDebarras";
+import SalleCrise from "./SalleCrise";
 
 function Room({ title, bg, children }) {
   const defaultBg = "/backgrounds/controlRoom.jpg";
@@ -91,6 +92,7 @@ export default function GameRoom({ sessionId, playerId }) {
     { name: "Biosphère", bg: "/backgrounds/biosphereB.png" },
     { name: "Débarras", bg: "/backgrounds/debarras.jpg" },
     { name: "Salle de survie", bg: "/backgrounds/survie.jpg" },
+    { name: "Salle de crise", bg: "/backgrounds/sallecrise.png" },
   ].map((r, i) => ({ ...r, order: i + 1 }));
 
   set(orderRef, defaultOrder).then(() => setRoomsOrder(defaultOrder));
@@ -113,6 +115,7 @@ export default function GameRoom({ sessionId, playerId }) {
     "Centrale électrique": PuzzleEnergy,
     "Biosphère": Biosphere,
     "Débarras": PuzzleDebarras,
+    "Salle de crise": SalleCrise,
   };
 
   // --- Gestion de la validation d'une salle
