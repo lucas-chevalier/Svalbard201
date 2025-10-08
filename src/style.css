@@ -276,7 +276,27 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  opacity: 0.3;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+
 }
+
+.room-tile:hover {
+  opacity: 1;
+}
+
+.room-tile.locked {
+  opacity: 0.25 !important;
+  filter: grayscale(70%);
+  cursor: not-allowed;
+  pointer-events: auto;
+  transition: opacity 0.3s ease;
+}
+.room-tile.locked:hover {
+  transform: none;
+  box-shadow: none;
+}
+
 
 .tile-image {
   width: 100%;
@@ -359,21 +379,6 @@ body {
 }
 
 
-/* ==========================
-   Grainotheque background
-   ========================== */
-.salle-grainotheque {
-  min-height: 100vh;
-  background-image: url('/backgrounds/grainotheque.png');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  padding-top: 2rem;
-}
 /* Encadrement image énigme style bouton */
 .image-frame {
   display: inline-block;
@@ -383,4 +388,83 @@ body {
   background-color: #0b0b0b;
   box-shadow: 0 0 15px #00ff66;
   margin-bottom: 1.5rem;
+}
+
+/* ==========================
+   Progression / Barre Fallout (effet CRT)
+   ========================== */
+.progress-section {
+  margin: 20px 0 30px 0;
+  width: 80%;
+  max-width: 600px;
+  text-align: center;
+  font-family: "Courier New", monospace;
+  color: #00ff66;
+  text-shadow: 0 0 5px #00ff66;
+}
+
+.progress-text {
+  font-size: 18px;
+  margin-bottom: 8px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 18px;
+  background: rgba(0, 30, 0, 0.5);
+  border: 2px solid #00ff66;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 0 10px #00ff66;
+  position: relative;
+}
+
+/* Barre principale */
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 255, 102, 0.8) 0%,
+    rgba(0, 255, 140, 1) 40%,
+    rgba(0, 255, 102, 0.8) 100%
+  );
+  box-shadow: 0 0 15px #00ff66, inset 0 0 6px rgba(0, 255, 102, 0.5);
+  position: relative;
+  transition: width 0.6s ease-out;
+  animation: crtScan 3s linear infinite;
+}
+
+/* --- Effet CRT --- */
+.progress-fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 255, 102, 0.25) 0px,
+    rgba(0, 255, 102, 0.05) 2px,
+    transparent 3px,
+    transparent 4px
+  );
+  animation: crtLines 0.12s infinite;
+  pointer-events: none;
+}
+
+@keyframes crtScan {
+  0% {
+    filter: brightness(0.8);
+  }
+  50% {
+    filter: brightness(1.4);
+  }
+  100% {
+    filter: brightness(0.8);
+  }
+}
+
+@keyframes crtLines {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 0.7; }
 }

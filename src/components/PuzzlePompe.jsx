@@ -7,6 +7,33 @@ import { ref, onValue, update, set } from "firebase/database";
 export default function PuzzlePompe({ sessionId, playerRole, onSolve }) {
   const [state, setState] = useState(null);
   const [logs, setLogs] = useState([]);
+  
+  // --- CONTEXTE & OBJECTIF ---
+  // Ce puzzle simule une fuite dans le système hydraulique de la station.
+  // Votre objectif : identifier la zone de fuite, isoler la section concernée à l'aide des vannes,
+  // puis ajuster la puissance de la pompe pour rétablir une pression stable dans le réseau.
+  // Attention : une mauvaise manipulation peut provoquer une surcharge ou un crash du système !
+  // Collaborez pour surveiller les pressions, fermer les bonnes vannes et stabiliser la situation.
+
+  // Ajout du contexte dans le journal des logs à l'entrée dans la salle (une seule fois)
+  useEffect(() => {
+    if (!sessionId) return;
+    const r = ref(db, pompeRefPath);
+    onValue(r, (snap) => {
+      const v = snap.val();
+      if (!v) return;
+      const logs = v.logs || [];
+      const contextText = "Contexte : Une fuite a été détectée dans le réseau hydraulique de la station. Objectif : Identifiez la zone de fuite, isolez-la en fermant les vannes appropriées, puis ajustez la puissance de la pompe pour rétablir une pression normale. Attention : Une mauvaise manipulation peut provoquer une surcharge ou un crash du système. Communiquez et coopérez pour réussir !";
+      const alreadyPresent = logs.some(l => l.text && l.text.startsWith("Contexte : Une fuite a été détectée"));
+      if (!alreadyPresent) {
+        const newLog = { t: new Date().toLocaleTimeString(), text: contextText };
+        const updatedLogs = [newLog, ...logs.slice(0, 49)];
+        update(r, { logs: updatedLogs });
+      }
+    }, { onlyOnce: true });
+    // onlyOnce: true pour ne pas réécrire à chaque re-render
+  }, [sessionId]);
+
   const [hintVisible, setHintVisible] = useState(false);
   const lastActivity = useRef(Date.now());
   const pompeRefPath = `sessions/${sessionId}/pompe`;
@@ -19,7 +46,7 @@ export default function PuzzlePompe({ sessionId, playerRole, onSolve }) {
   const [crashed, setCrashed] = useState(false);
   const [solved, setSolved] = useState(false);
 
-  // init & listen
+    // init & listen
   useEffect(() => {
     if (!sessionId) return;
     const r = ref(db, pompeRefPath);
@@ -27,27 +54,28 @@ export default function PuzzlePompe({ sessionId, playerRole, onSolve }) {
       const v = snap.val();
       if (!v) {
         // démarrage en défaut / tous les capteurs à 0
-        const defaultState = {
-          pressure: { p1: 0, p2: 0, p3: 0 },
-          valves: { v1: "open", v2: "open", v3: "open" },
-          pumpPower: 0,
-          leak_zone: "p3",
-          crashed: false,
-          solved: false,
-        };
-        set(r, defaultState);
-        setState(defaultState);
-        // Affichage de l'indice différé de 2 minutes
-        if (window.__pompeIndiceTimeout) clearTimeout(window.__pompeIndiceTimeout);
-        window.__pompeIndiceTimeout = setTimeout(() => {
-          setLogs((l) => [
-            { t: new Date().toLocaleTimeString(), text: "Indice : une variation anormale de pression indique une fuite. Peut-être qu’isoler une section et ajuster la pompe permettrait de rétablir la situation…" },
-            ...l.slice(0, 49)
-          ]);
-        }, 120000);
+        // On préserve le flag indiceShown si déjà présent (rare mais possible en cas de reset manuel)
+        const currentRef = ref(db, pompeRefPath);
+        onValue(currentRef, (snap2) => {
+          const prev = snap2.val() || {};
+          const defaultState = {
+            pressure: { p1: 0, p2: 0, p3: 0 },
+            valves: { v1: "open", v2: "open", v3: "open" },
+            pumpPower: 0,
+            leak_zone: "p3",
+            crashed: false,
+            solved: false,
+            logs: [], // Ajout des logs synchronisés
+            ...(typeof prev.indiceShown !== 'undefined' ? { indiceShown: prev.indiceShown } : {})
+          };
+          set(r, defaultState);
+          setState(defaultState);
+          setLogs([]);
+        }, { onlyOnce: true });
       } else {
         setState(v);
-        // Ne pas afficher l'indice immédiatement
+        // Synchroniser les logs depuis Firebase
+        setLogs(v.logs || []);
       }
     });
     return () => unsub();
@@ -149,7 +177,11 @@ export default function PuzzlePompe({ sessionId, playerRole, onSolve }) {
         window.__pompeSurchargeTimeout = setTimeout(() => {
           setPumpPower(50);
           update(ref(db, pompeRefPath), { pumpPower: 50 });
-          pushLog("Surcharge détectée : la pompe a été automatiquement abaissée à 50% !");
+          // Utiliser la fonction pushLog pour synchroniser via Firebase
+          const currentLogs = state?.logs || [];
+          const newLog = { t: new Date().toLocaleTimeString(), text: "Surcharge détectée : la pompe a été automatiquement abaissée à 50% !" };
+          const updatedLogs = [newLog, ...currentLogs.slice(0, 49)];
+          update(ref(db, pompeRefPath), { pumpPower: 50, logs: updatedLogs });
           window.__pompeSurchargeTimeout = null;
         }, 3000);
       }
@@ -211,7 +243,13 @@ export default function PuzzlePompe({ sessionId, playerRole, onSolve }) {
   };
 
   const pushLog = (text) => {
-    setLogs((l) => [{ t: new Date().toLocaleTimeString(), text }, ...l.slice(0, 49)]);
+    // Récupérer les logs actuels depuis Firebase et ajouter le nouveau
+    const currentLogs = state?.logs || [];
+    const newLog = { t: new Date().toLocaleTimeString(), text };
+    const updatedLogs = [newLog, ...currentLogs.slice(0, 49)];
+    
+    // Mettre à jour Firebase avec les nouveaux logs
+    update(ref(db, pompeRefPath), { logs: updatedLogs });
   };
 
   // Contrôles UI
@@ -313,9 +351,7 @@ export default function PuzzlePompe({ sessionId, playerRole, onSolve }) {
           <div style={{maxHeight:220, overflowY:'auto', border:'1px solid #ddd', padding:8}}>
             {logs.map((l,i)=> <div key={i}>[{l.t}] {l.text}</div>)}
           </div>
-          {hintVisible && (
-            <div style={{marginTop:12, padding:8, border:'1px dashed #ffaa00'}}>Indice : Isolez la fuite et rétablissez la pression sur P3.</div>
-          )}
+          {/* Indice supprimé définitivement */}
           {state.crashed && (
             <div style={{marginTop:12, padding:12, background:'#b30000', color:'#fff', borderRadius:6}}>
               CRASH système — la pompe a été arrêtée. L'Hydrologue doit relancer le système.
