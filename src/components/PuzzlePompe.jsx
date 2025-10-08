@@ -290,13 +290,15 @@ export default function PuzzlePompe({ sessionId, playerRole, onWin }) {
         setPumpPower(0);
         update(ref(db, pompeRefPath), { pumpPower: 0 });
       }
-      // Condition de victoire : P1=80, P2=80, P3>=50
+      // Condition de victoire : P1≈80, P2≈80, P3>=50
       let win = false;
-      if (
-        next.p1 === 80 &&
-        next.p2 === 80 &&
-        next.p3 >= 50
-      ) {
+      // tolérance pour éviter d'attendre des oscillations parfaitement alignées
+      const near = (v, target, tol = 1) => Math.abs(v - target) <= tol;
+      if (near(next.p1, 80, 1) && near(next.p2, 80, 1) && next.p3 >= 50) {
+        // snap to exact win values for immediate feedback
+        next.p1 = 80;
+        next.p2 = 80;
+        if (next.p3 < 50) next.p3 = 50;
         win = true;
       }
       // Mise à jour Firebase
