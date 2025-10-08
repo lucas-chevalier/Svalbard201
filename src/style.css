@@ -399,6 +399,63 @@ body {
   margin-bottom: 1.5rem;
 }
 
+/* Puzzle Debarras / Plant harmonized styles */
+.puzzle-container {
+  color: #eaffff;
+  min-height: 70vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+.puzzle-center-wrapper {
+  width: 90%;
+  max-width: 1100px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  align-items:center;
+}
+.puzzle-title { margin: 0; }
+.inactive-dim { filter: grayscale(12%); opacity: 0.85; }
+
+.puzzle-players-bar { width:100%; display:flex; justify-content:center; margin-bottom:12px; }
+.puzzle-players-inner { padding:8px; background: rgba(0,20,0,0.6); border-radius:8px; width:100%; display:flex; justify-content:center; border: 1px solid rgba(0,255,102,0.06); }
+.puzzle-players-title { color:#eaffff; font-weight:700; margin-right:12px; }
+.puzzle-players-list { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; }
+.puzzle-player { padding:4px 8px; border-radius:4px; background:#001a20; border:1px solid rgba(0,255,102,0.08); color:#cfe9ef; }
+.puzzle-player.me { background:#003a44; border:1px solid #00ffaa; font-weight:700; }
+.puzzle-player-role { color:#00ffaa; margin-left:6px; }
+
+.active-player-glow { display:inline-block; padding:8px 12px; border-radius:8px; box-shadow: 0 0 18px rgba(0,255,102,0.12); background: linear-gradient(90deg, #002b35, #003b47); color: #eaffff; }
+
+.puzzle-current-row { width:100%; display:flex; justify-content:center; margin-bottom:12px; }
+.puzzle-current-player { padding:8px 12px; border-radius:8px; background: rgba(0,20,0,0.6); border:1px solid rgba(0,255,102,0.06); color:#eaffff; }
+.puzzle-current-player.me { border-color:#00ffaa; background: rgba(0,40,30,0.6); }
+
+.puzzle-main { width:100%; display:flex; gap:24px; justify-content:center; align-items:flex-start; }
+.puzzle-left { flex:1; max-width:420px; }
+.puzzle-right { width:520px; display:flex; flex-direction:column; align-items:center; }
+
+.question-box { padding:16px; border-radius:10px; background: rgba(0,20,0,0.65); color:#eaf6fb; border:1px solid rgba(0,255,102,0.06); }
+.question-hidden { font-style:italic; color:#cfe9ef; }
+.waiting-note { margin-top:8px; color:#ffd17a; font-weight:600; }
+.puzzle-message { margin-top:8px; padding:8px; background: rgba(0,20,0,0.6); border-radius:8px; width:100%; border:1px solid rgba(0,255,102,0.04); }
+.puzzle-message-text { font-weight:bold; color:#ffcc00; }
+
+.answers { margin-top:12px; display:flex; flex-wrap:wrap; gap:8px; }
+.puzzle-answer-btn { background:#008fb3; color:#fff; border:none; padding:10px 14px; border-radius:6px; cursor:pointer; transition: transform .12s ease, background .12s ease; }
+.puzzle-answer-btn:disabled, .puzzle-answer-btn[aria-disabled='true'] { background:#346b7b; color:#cfe9ef; cursor:not-allowed; }
+.puzzle-action-btn { padding:8px 12px; border-radius:6px; background:transparent; border:2px solid #00ff66; color:#00ff66; cursor:pointer; }
+.puzzle-action-btn.destructive { background:#aa3333; color:#fff; border-color:#aa3333; }
+
+.piece-preview { width:120px; height:120px; border-radius:10px; background:#0b0b0b; border:2px solid #00ff66; display:flex; align-items:center; justify-content:center; box-shadow: 0 6px 18px rgba(0,0,0,0.35); }
+.piece-img { width:110px; height:110px; }
+
+.puzzle-slots-grid { display:grid; grid-template-columns:repeat(3,120px); gap:10px; margin-top:18px; background: rgba(0,20,0,0.5); padding:12px; border-radius:10px; border:1px solid rgba(0,255,102,0.04); }
+.slot { width:120px; height:120px; border-radius:8px; background: rgba(0,30,0,0.45); border:2px dashed rgba(0,255,102,0.12); display:flex; align-items:center; justify-content:center; transition: transform .18s ease; }
+.slot img { width:100px; height:100px; transition: transform .18s ease, opacity .18s ease; }
+.placed { transform:scale(1.02); }
+
 /* ==========================
    Progression / Barre Fallout (effet CRT)
    ========================== */
