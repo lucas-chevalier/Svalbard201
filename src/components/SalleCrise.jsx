@@ -38,6 +38,7 @@ export default function SalleCrise({ sessionId, playerRole, playerId, session, o
   const [choiceConfirmed, setChoiceConfirmed] = useState(false);
   const [allChoices, setAllChoices] = useState({});
   const [globalScore, setGlobalScore] = useState(null);
+  const [showVictoryLocal, setShowVictoryLocal] = useState(false);
   const globalScoreRef = ref(db, `sessions/${sessionId}/crise/globalScore`);
 
   const indicatorRef = ref(db, `sessions/${sessionId}/crise/indicators`);
@@ -147,6 +148,7 @@ export default function SalleCrise({ sessionId, playerRole, playerId, session, o
         // Si on passe en phase résultat, calculer le score et valider la salle
         if (nextPhase === 'resultat') {
           calculateScore();
+          setShowVictoryLocal(true);
           if (typeof onWin === 'function') onWin();
         }
       }
@@ -539,7 +541,7 @@ export default function SalleCrise({ sessionId, playerRole, playerId, session, o
     } else if (globalScore >= 0.6) {
       message = "Colonie stable : survie estimée à 80 jours.";
       subtitle = "Bonne coordination !";
-      funFact = "Note du QG : Les autres colonies vous jalousent. Nous avons dû installer des filtres anti-envie sur les communications.";
+      funFact = "Note du QG : Les autres colonies vous jalousent. Votre secret ? Des pauses café plus fréquentes.";
     } else if (globalScore >= 0.5) {
       message = "Système relativement stable : survie estimée à 65 jours.";
       subtitle = "Pas mal, mais on peut mieux faire...";
@@ -586,6 +588,21 @@ export default function SalleCrise({ sessionId, playerRole, playerId, session, o
 
   return (
     <div className="salle-crise">
+      {showVictoryLocal && (
+        <div className="victory-overlay" role="dialog" aria-modal="true">
+          <div className="victory-card">
+            <h2>🎉 Mission Accomplie !</h2>
+            <p>Audit de crise terminé avec succès.</p>
+            <p style={{ fontSize: '14px', fontStyle: 'italic', color: '#888', marginTop: '8px' }}>
+              "Félicitations ! Vous avez survécu à la bureaucratie de crise. Statistiquement parlant, c'était plus dangereux que la crise elle-même."
+            </p>
+            <div style={{display:'flex', gap:8, marginTop:12}}>
+              <button onClick={() => setShowVictoryLocal(false)} className="puzzle-action-btn">Fermer</button>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div className="phase-indicator">
         <div className={`phase ${phase === 'diagnostic' ? 'active' : ''}`}>
           1. Diagnostic {phase === 'diagnostic' && phaseTimer && <span>({Math.ceil(phaseTimer / 1000)}s)</span>}

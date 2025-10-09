@@ -35,6 +35,7 @@ export default function PuzzleDebarras({ sessionId, roomName, onWin, playerRole,
   const [placements, setPlacements] = useState({});
   const [slotsState, setSlotsState] = useState([]);
   const [showVictoryLocal, setShowVictoryLocal] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const debarrasRefPath = sessionId ? `sessions/${sessionId}/puzzles/${roomName}` : null;
   const roleOrder = ['Biologiste', 'Énergéticien', 'Hydrologue'];
@@ -262,7 +263,13 @@ export default function PuzzleDebarras({ sessionId, roomName, onWin, playerRole,
 
   const resetAndShuffle = async () => {
     if (!debarrasRefPath) return;
-    if (!confirm('Cette action va réinitialiser le puzzle pour tous les joueurs et mélanger les questions — continuer ?')) return;
+    // Open custom confirmation modal instead of native confirm()
+    setShowResetConfirm(true);
+  };
+
+  const doResetAndShuffle = async () => {
+    setShowResetConfirm(false);
+    if (!debarrasRefPath) return;
     const biologiste = sessionPlayers ? Object.values(sessionPlayers).find(p => p.role === 'Biologiste') : playersArr.find(p => p.role === 'Biologiste');
     const startId = biologiste?.id || playersArr[0]?.id || null;
     const init = shuffleArray(piecesData);
@@ -387,8 +394,11 @@ export default function PuzzleDebarras({ sessionId, roomName, onWin, playerRole,
         {showVictoryLocal && (
           <div className="victory-overlay" role="dialog" aria-modal="true">
             <div className="victory-card">
-              <h2>🎉 Succès !</h2>
+              <h2>🎉 Mystère Élucidé !</h2>
               <p>Énigme résolue — bravo !</p>
+              <p style={{ fontSize: '14px', fontStyle: 'italic', color: '#888', marginTop: '8px' }}>
+                "Impressionnant ! Vous avez résolu cette énigme plus vite qu'il n'en faut pour dire 'Qu'est-ce que je fais ici ?'. Le débarras vous remercie."
+              </p>
               <div style={{display:'flex', gap:8, marginTop:12}}>
                 <button onClick={() => setShowVictoryLocal(false)} className="puzzle-action-btn">Fermer</button>
               </div>
@@ -501,7 +511,21 @@ export default function PuzzleDebarras({ sessionId, roomName, onWin, playerRole,
             <button onClick={launchPuzzle} className="puzzle-action-btn">Lancer le puzzle</button>
           )}
           {isHost && (
-            <button onClick={resetAndShuffle} className="puzzle-action-btn destructive">Réinitialiser</button>
+            <>
+              <button onClick={resetAndShuffle} className="puzzle-action-btn destructive">Réinitialiser</button>
+              {showResetConfirm && (
+                <div className="victory-overlay" role="dialog" aria-modal="true">
+                  <div className="victory-card">
+                    <h3>Confirmer la réinitialisation</h3>
+                    <p>Cette action va réinitialiser le puzzle pour tous les joueurs et mélanger les questions — continuer ?</p>
+                    <div style={{display:'flex', gap:8, marginTop:12}}>
+                      <button onClick={() => setShowResetConfirm(false)} className="puzzle-action-btn">Annuler</button>
+                      <button onClick={() => doResetAndShuffle()} className="puzzle-action-btn destructive">Confirmer</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

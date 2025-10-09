@@ -196,8 +196,11 @@ export default function PuzzleWater({ sessionId, roomName, size = 8, onWin }) {
       {showVictoryLocal && (
         <div className="victory-overlay" role="dialog" aria-modal="true">
           <div className="victory-card">
-            <h2>🎉 Succès !</h2>
-            <p>Ressortir du réseau hydraulique complété.</p>
+            <h2>🎉 Système Réparé !</h2>
+            <p>Réseau hydraulique complété.</p>
+            <p style={{ fontSize: '14px', fontStyle: 'italic', color: '#888', marginTop: '8px' }}>
+              "Bravo ! Vous avez reconnecté assez de tuyaux pour impressionner un castor. Maintenant l'eau coule dans le bon sens... enfin, on espère."
+            </p>
             <div style={{display:'flex', gap:8, marginTop:12}}>
               <button onClick={() => setShowVictoryLocal(false)} className="puzzle-action-btn">Fermer</button>
             </div>

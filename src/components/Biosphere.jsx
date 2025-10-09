@@ -101,8 +101,11 @@ export default function Biosphere({ playerRole, sessionId, onWin, players, playe
       {showVictoryLocal && (
         <div className="victory-overlay" role="dialog" aria-modal="true">
           <div className="victory-card">
-            <h2>🎉 Succès !</h2>
+            <h2>🎉 Écosystème Optimisé !</h2>
             <p>Biosphère équilibrée — bravo !</p>
+            <p style={{ fontSize: '14px', fontStyle: 'italic', color: '#888', marginTop: '8px' }}>
+              "Incroyable ! Vous avez créé un écosystème si parfait que même les plantes carnivores sourient. Enfin, on suppose qu'elles sourient."
+            </p>
             <div style={{display:'flex', gap:8, marginTop:12}}>
               <button onClick={() => setShowVictoryLocal(false)} className="puzzle-action-btn">Fermer</button>
             </div>

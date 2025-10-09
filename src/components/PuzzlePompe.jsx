@@ -377,8 +377,11 @@ export default function PuzzlePompe({ sessionId, playerRole, onWin, players, pla
       {showVictoryLocal && (
         <div className="victory-overlay" role="dialog" aria-modal="true">
           <div className="victory-card">
-            <h2>🎉 Succès !</h2>
+            <h2>🎉 Fuite Colmatée !</h2>
             <p>La fuite a été isolée et la pression est rétablie.</p>
+            <p style={{ fontSize: '14px', fontStyle: 'italic', color: '#888', marginTop: '8px' }}>
+              "Excellent ! Vous avez arrêté la fuite avant qu'elle ne transforme la station en aquarium géant. Les poissons sont déçus."
+            </p>
             <div style={{display:'flex', gap:8, marginTop:12}}>
               <button onClick={() => setShowVictoryLocal(false)} className="puzzle-action-btn">Fermer</button>
             </div>

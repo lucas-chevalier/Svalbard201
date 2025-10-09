@@ -254,8 +254,11 @@ export default function PuzzleEnergy({ sessionId, playerRole, onWin, players, pl
       {showVictoryLocal && (
         <div className="victory-overlay" role="dialog" aria-modal="true">
           <div className="victory-card">
-            <h2>🎉 Succès !</h2>
+            <h2>🎉 Énergie Maîtrisée !</h2>
             <p>Réseau énergétique stabilisé.</p>
+            <p style={{ fontSize: '14px', fontStyle: 'italic', color: '#888', marginTop: '8px' }}>
+              "Félicitations ! Vous avez dompté l'électricité sans vous électrocuter. C'est déjà mieux que 73% des techniciens précédents."
+            </p>
             <div style={{display:'flex', gap:8, marginTop:12}}>
               <button onClick={() => setShowVictoryLocal(false)} className="puzzle-action-btn">Fermer</button>
             </div>
