@@ -78,6 +78,7 @@ export default function Grainotheque({ sessionId, roomName = "grainotheque", onW
       saveProgress({ currentQuestion: next });
     } else {
       setValidated(true);
+      setShowVictoryLocal(true);
       saveProgress({ validated: true });
       if (onWin) onWin();
     }
@@ -250,9 +251,9 @@ export default function Grainotheque({ sessionId, roomName = "grainotheque", onW
           </div>
           {showVictoryLocal && (
             <div className="victory-overlay" role="dialog" aria-modal="true">
-              <div className="victory-card">
-                <h2>🎉 Succès !</h2>
-                <p>Épreuve validée — bravo !</p>
+              <div className="victory-card" style={{ textShadow: 'none', filter: 'none' }}>
+                <h2 style={{ textShadow: 'none', filter: 'none' }}>🎉 Succès !</h2>
+                <p style={{ textShadow: 'none', filter: 'none' }}>Épreuve validée — bravo !</p>
                 <div style={{display:'flex', gap:8, marginTop:12}}>
                   <button onClick={() => setShowVictoryLocal(false)} className="puzzle-action-btn">Fermer</button>
                 </div>

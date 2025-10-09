@@ -393,10 +393,10 @@ export default function PuzzleDebarras({ sessionId, roomName, onWin, playerRole,
       <div className="puzzle-center-wrapper">
         {showVictoryLocal && (
           <div className="victory-overlay" role="dialog" aria-modal="true">
-            <div className="victory-card">
-              <h2>🎉 Mystère Élucidé !</h2>
-              <p>Énigme résolue — bravo !</p>
-              <p style={{ fontSize: '14px', fontStyle: 'italic', color: '#888', marginTop: '8px' }}>
+            <div className="victory-card" style={{ textShadow: 'none', filter: 'none' }}>
+              <h2 style={{ textShadow: 'none', filter: 'none' }}>🎉 Mystère Élucidé !</h2>
+              <p style={{ textShadow: 'none', filter: 'none' }}>Énigme résolue — bravo !</p>
+              <p style={{ fontSize: '16px', fontStyle: 'italic', color: '#b0b0b0', marginTop: '12px', padding: '8px', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '4px', lineHeight: '1.4' }}>
                 "Impressionnant ! Vous avez résolu cette énigme plus vite qu'il n'en faut pour dire 'Qu'est-ce que je fais ici ?'. Le débarras vous remercie."
               </p>
               <div style={{display:'flex', gap:8, marginTop:12}}>
@@ -515,9 +515,9 @@ export default function PuzzleDebarras({ sessionId, roomName, onWin, playerRole,
               <button onClick={resetAndShuffle} className="puzzle-action-btn destructive">Réinitialiser</button>
               {showResetConfirm && (
                 <div className="victory-overlay" role="dialog" aria-modal="true">
-                  <div className="victory-card">
-                    <h3>Confirmer la réinitialisation</h3>
-                    <p>Cette action va réinitialiser le puzzle pour tous les joueurs et mélanger les questions — continuer ?</p>
+                  <div className="victory-card" style={{ textShadow: 'none', filter: 'none' }}>
+                    <h3 style={{ textShadow: 'none', filter: 'none' }}>Confirmer la réinitialisation</h3>
+                    <p style={{ textShadow: 'none', filter: 'none' }}>Cette action va réinitialiser le puzzle pour tous les joueurs et mélanger les questions — continuer ?</p>
                     <div style={{display:'flex', gap:8, marginTop:12}}>
                       <button onClick={() => setShowResetConfirm(false)} className="puzzle-action-btn">Annuler</button>
                       <button onClick={() => doResetAndShuffle()} className="puzzle-action-btn destructive">Confirmer</button>

@@ -100,10 +100,10 @@ export default function Biosphere({ playerRole, sessionId, onWin, players, playe
     <div className="biosphere-room" style={{ minHeight: "100vh", position: "relative" }}>
       {showVictoryLocal && (
         <div className="victory-overlay" role="dialog" aria-modal="true">
-          <div className="victory-card">
-            <h2>🎉 Écosystème Optimisé !</h2>
-            <p>Biosphère équilibrée — bravo !</p>
-            <p style={{ fontSize: '14px', fontStyle: 'italic', color: '#888', marginTop: '8px' }}>
+          <div className="victory-card" style={{ textShadow: 'none', filter: 'none' }}>
+            <h2 style={{ textShadow: 'none', filter: 'none' }}>🎉 Écosystème Optimisé !</h2>
+            <p style={{ textShadow: 'none', filter: 'none' }}>Biosphère équilibrée — bravo !</p>
+            <p style={{ fontSize: '16px', fontStyle: 'italic', color: '#b0b0b0', marginTop: '12px', padding: '8px', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '4px', lineHeight: '1.4' }}>
               "Incroyable ! Vous avez créé un écosystème si parfait que même les plantes carnivores sourient. Enfin, on suppose qu'elles sourient."
             </p>
             <div style={{display:'flex', gap:8, marginTop:12}}>

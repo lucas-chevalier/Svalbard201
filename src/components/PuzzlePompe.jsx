@@ -376,10 +376,10 @@ export default function PuzzlePompe({ sessionId, playerRole, onWin, players, pla
       {/* Victory popup - visible to all when solved flag is set in Firebase */}
       {showVictoryLocal && (
         <div className="victory-overlay" role="dialog" aria-modal="true">
-          <div className="victory-card">
-            <h2>🎉 Fuite Colmatée !</h2>
-            <p>La fuite a été isolée et la pression est rétablie.</p>
-            <p style={{ fontSize: '14px', fontStyle: 'italic', color: '#888', marginTop: '8px' }}>
+          <div className="victory-card" style={{ textShadow: 'none', filter: 'none' }}>
+            <h2 style={{ textShadow: 'none', filter: 'none' }}>🎉 Fuite Colmatée !</h2>
+            <p style={{ textShadow: 'none', filter: 'none' }}>La fuite a été isolée et la pression est rétablie.</p>
+            <p style={{ fontSize: '16px', fontStyle: 'italic', color: '#b0b0b0', marginTop: '12px', padding: '8px', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '4px', lineHeight: '1.4' }}>
               "Excellent ! Vous avez arrêté la fuite avant qu'elle ne transforme la station en aquarium géant. Les poissons sont déçus."
             </p>
             <div style={{display:'flex', gap:8, marginTop:12}}>

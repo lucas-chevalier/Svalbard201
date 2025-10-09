@@ -148,7 +148,8 @@ export default function SalleCrise({ sessionId, playerRole, playerId, session, o
         // Si on passe en phase résultat, calculer le score et valider la salle
         if (nextPhase === 'resultat') {
           calculateScore();
-          setShowVictoryLocal(true);
+          // Marquer comme résolu pour tous les joueurs
+          set(ref(db, `sessions/${sessionId}/crise/solved`), true);
           if (typeof onWin === 'function') onWin();
         }
       }
@@ -269,6 +270,18 @@ export default function SalleCrise({ sessionId, playerRole, playerId, session, o
     });
     return unsubGlobalScore;
   }, [globalScoreRef]);
+
+  // Synchronisation du statut de victoire pour tous les joueurs
+  useEffect(() => {
+    const solvedRef = ref(db, `sessions/${sessionId}/crise/solved`);
+    const unsubSolved = onValue(solvedRef, (snap) => {
+      const isSolved = snap.val();
+      if (isSolved) {
+        setShowVictoryLocal(true);
+      }
+    });
+    return unsubSolved;
+  }, [sessionId]);
 
   const normalizeRole = (role) => {
     // Normalise le rôle pour gérer les différences d'accents
@@ -590,10 +603,10 @@ export default function SalleCrise({ sessionId, playerRole, playerId, session, o
     <div className="salle-crise">
       {showVictoryLocal && (
         <div className="victory-overlay" role="dialog" aria-modal="true">
-          <div className="victory-card">
-            <h2>🎉 Mission Accomplie !</h2>
-            <p>Audit de crise terminé avec succès.</p>
-            <p style={{ fontSize: '14px', fontStyle: 'italic', color: '#888', marginTop: '8px' }}>
+          <div className="victory-card" style={{ textShadow: 'none', filter: 'none' }}>
+            <h2 style={{ textShadow: 'none', filter: 'none' }}>🎉 Mission Accomplie !</h2>
+            <p style={{ textShadow: 'none', filter: 'none' }}>Audit de crise terminé avec succès.</p>
+            <p style={{ fontSize: '16px', fontStyle: 'italic', color: '#b0b0b0', marginTop: '12px', padding: '8px', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '4px', lineHeight: '1.4' }}>
               "Félicitations ! Vous avez survécu à la bureaucratie de crise. Statistiquement parlant, c'était plus dangereux que la crise elle-même."
             </p>
             <div style={{display:'flex', gap:8, marginTop:12}}>

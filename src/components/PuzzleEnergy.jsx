@@ -190,7 +190,7 @@ export default function PuzzleEnergy({ sessionId, playerRole, onWin, players, pl
     if (total === 9 && heat >= 3 && pump >= 3 && serre >= 3) {
       if (!state.solved) {
         update(ref(db, energyRefPath), { solved: true });
-        pushLog("Succès : réseau énergétique stabilisé à 9 kW");
+        pushLog("Succès : réseau électrique stabilisé à 9 kW");
         if (onWin) onWin();
       }
     }
@@ -253,10 +253,10 @@ export default function PuzzleEnergy({ sessionId, playerRole, onWin, players, pl
     <div style={{position:'relative'}}>
       {showVictoryLocal && (
         <div className="victory-overlay" role="dialog" aria-modal="true">
-          <div className="victory-card">
-            <h2>🎉 Énergie Maîtrisée !</h2>
-            <p>Réseau énergétique stabilisé.</p>
-            <p style={{ fontSize: '14px', fontStyle: 'italic', color: '#888', marginTop: '8px' }}>
+          <div className="victory-card" style={{ textShadow: 'none', filter: 'none' }}>
+            <h2 style={{ textShadow: 'none', filter: 'none' }}>🎉 Électricité Maîtrisée !</h2>
+            <p style={{ textShadow: 'none', filter: 'none' }}>Réseau électrique stabilisé.</p>
+            <p style={{ fontSize: '16px', fontStyle: 'italic', color: '#b0b0b0', marginTop: '12px', padding: '8px', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '4px', lineHeight: '1.4' }}>
               "Félicitations ! Vous avez dompté l'électricité sans vous électrocuter. C'est déjà mieux que 73% des techniciens précédents."
             </p>
             <div style={{display:'flex', gap:8, marginTop:12}}>
@@ -265,7 +265,7 @@ export default function PuzzleEnergy({ sessionId, playerRole, onWin, players, pl
           </div>
         </div>
       )}
-      <h3>⚡ Module Énergie — Contrôle</h3>
+      <h3>⚡ Module Électricité — Contrôle</h3>
       <div style={{display:'flex', gap:16}}>
         <div style={{minWidth:260}}>
           <div><b>Rôle affiché :</b> {playerRole || 'Énergéticien'}</div>

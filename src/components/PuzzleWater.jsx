@@ -60,6 +60,17 @@ export default function PuzzleWater({ sessionId, roomName, size = 8, onWin }) {
     return () => unsub();
   }, [sessionId, roomName, alreadyLoaded]);
 
+  // Écouter le statut de victoire pour synchroniser le popup
+  useEffect(() => {
+    const solvedRef = ref(db, `sessions/${sessionId}/puzzles/${roomName}/solved`);
+    const unsub = onValue(solvedRef, (snap) => {
+      if (snap.val() === true) {
+        setShowVictoryLocal(true);
+      }
+    });
+    return () => unsub();
+  }, [sessionId, roomName]);
+
   const handleClick = (x, y) => {
     if (won) return;
     const newRot = (rotations[y][x] + 1) % 4;
@@ -195,10 +206,10 @@ export default function PuzzleWater({ sessionId, roomName, size = 8, onWin }) {
     <div style={{ display:"grid", placeItems:"center", marginTop:20, position:"relative" }}>
       {showVictoryLocal && (
         <div className="victory-overlay" role="dialog" aria-modal="true">
-          <div className="victory-card">
-            <h2>🎉 Système Réparé !</h2>
-            <p>Réseau hydraulique complété.</p>
-            <p style={{ fontSize: '14px', fontStyle: 'italic', color: '#888', marginTop: '8px' }}>
+          <div className="victory-card" style={{ textShadow: 'none', filter: 'none' }}>
+            <h2 style={{ textShadow: 'none', filter: 'none' }}>🎉 Système Réparé !</h2>
+            <p style={{ textShadow: 'none', filter: 'none' }}>Réseau hydraulique complété.</p>
+            <p style={{ fontSize: '16px', fontStyle: 'italic', color: '#b0b0b0', marginTop: '12px', padding: '8px', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '4px', lineHeight: '1.4' }}>
               "Bravo ! Vous avez reconnecté assez de tuyaux pour impressionner un castor. Maintenant l'eau coule dans le bon sens... enfin, on espère."
             </p>
             <div style={{display:'flex', gap:8, marginTop:12}}>
