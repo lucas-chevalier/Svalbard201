@@ -270,7 +270,7 @@ function TerminalEnergéticien({ sessionId, onWin }) {
 
     if (sessionId && onWin) {
       // Marquer comme résolu pour tous les joueurs
-      update(ref(db, `sessions/${sessionId}/biosphere/solved`), true);
+      update(ref(db, `sessions/${sessionId}/biosphere`), { solved: true });
       onWin();
     }
   };

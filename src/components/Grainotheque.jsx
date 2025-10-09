@@ -32,6 +32,8 @@ const QUESTIONS = [
 
 export default function Grainotheque({ sessionId, roomName = "grainotheque", onWin, playerRole, players, playerId }) {
   const [showVictoryLocal, setShowVictoryLocal] = useState(false);
+  const [showVictoryPopup, setShowVictoryPopup] = useState(false);
+  const [popupClosed, setPopupClosed] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [response, setResponse] = useState("");
   const [validated, setValidated] = useState(false);
@@ -60,10 +62,14 @@ export default function Grainotheque({ sessionId, roomName = "grainotheque", onW
       const isSolved = snap.val();
       if (isSolved) {
         setShowVictoryLocal(true);
+        // Ne montrer le popup que s'il n'a pas été fermé manuellement
+        if (!popupClosed) {
+          setShowVictoryPopup(true);
+        }
       }
     });
     return unsubSolved;
-  }, [solvedRef]);
+  }, [solvedRef, popupClosed]);
 
   // 💾 Sauvegarde dans Firebase
   const saveProgress = (updates) => {
@@ -91,8 +97,14 @@ export default function Grainotheque({ sessionId, roomName = "grainotheque", onW
       setValidated(true);
       saveProgress({ validated: true });
       // Marquer comme résolu pour tous les joueurs
-      update(solvedRef, true);
-      if (onWin) onWin();
+      update(ref(db, `sessions/${sessionId}/grainotheque`), { solved: true });
+      console.log("🎯 Grainotheque: Appel de onWin avec roomName:", roomName);
+      if (onWin) {
+        console.log("🎯 Grainotheque: onWin existe, appel en cours...");
+        onWin(roomName);
+      } else {
+        console.error("❌ Grainotheque: onWin n'existe pas!");
+      }
     }
   };
 
@@ -265,7 +277,7 @@ export default function Grainotheque({ sessionId, roomName = "grainotheque", onW
       )}
 
       {/* Popup de victoire synchronisé */}
-      {showVictoryLocal && (
+      {showVictoryPopup && (
         <div className="victory-overlay" role="dialog" aria-modal="true">
           <div className="victory-card" style={{ textShadow: 'none', filter: 'none' }}>
             <h2 style={{ textShadow: 'none', filter: 'none' }}>🎉 Signal Décodé !</h2>
@@ -274,7 +286,10 @@ export default function Grainotheque({ sessionId, roomName = "grainotheque", onW
               "Félicitations ! Vous avez décodé des signaux si clairs que même les extraterrestres demandent vos coordonnées pour s'abonner à votre newsletter."
             </p>
             <div style={{display:'flex', gap:8, marginTop:12}}>
-              <button onClick={() => setShowVictoryLocal(false)} className="puzzle-action-btn">Fermer</button>
+              <button onClick={() => {
+                setShowVictoryPopup(false);
+                setPopupClosed(true);
+              }} className="puzzle-action-btn">Fermer</button>
             </div>
           </div>
         </div>
