@@ -100,7 +100,14 @@ export default function Biosphere({ playerRole, sessionId, onWin, players, playe
   }
 
   return (
-    <div className="biosphere-room" style={{ minHeight: "100vh", position: "relative" }}>
+    <div className="biosphere-room" style={{ 
+      minHeight: "100vh", 
+      position: "relative",
+      backgroundImage: "url('/backgrounds/biosphereB.png')",
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+      backgroundRepeat: "no-repeat"
+    }}>
       {showVictoryLocal && (
         <div className="victory-overlay" role="dialog" aria-modal="true">
           <div className="victory-card" style={{ textShadow: 'none', filter: 'none' }}>
