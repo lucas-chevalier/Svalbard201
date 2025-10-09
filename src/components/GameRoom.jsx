@@ -9,6 +9,7 @@ import Biosphere from "./Biosphere";
 import PuzzleEnergy from "./PuzzleEnergy";
 import PuzzleDebarras from "./PuzzleDebarras";
 import SalleCrise from "./SalleCrise";
+import BackgroundMusic from "./BackgroundMusic";
 
 function Room({ title, bg, children }) {
   const defaultBg = "/backgrounds/controlRoom.jpg";
@@ -250,7 +251,10 @@ useEffect(() => {
 
   // --- Salle de contrôle et autres salles
   return (
+    
     <>
+     {/* Musique de fond */}
+        <BackgroundMusic src="/assets/music/background.mp3" defaultVolume={0.2} />
       {currentRoom === "controlRoom" ? (
         <Room key={currentRoom} title="Salle de contrôle" bg="/backgrounds/controlRoom.jpg">
           <Timer endTime={session.timer} />
