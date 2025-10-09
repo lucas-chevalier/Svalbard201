@@ -40,6 +40,7 @@ export default function Grainotheque({ sessionId, roomName = "grainotheque", onW
 
   // 🔹 Référence Firebase
   const progressRef = ref(db, `sessions/${sessionId}/progress/${roomName}`);
+  const solvedRef = ref(db, `sessions/${sessionId}/grainotheque/solved`);
 
   // 🧠 Charger la progression depuis Firebase
   useEffect(() => {
@@ -48,11 +49,21 @@ export default function Grainotheque({ sessionId, roomName = "grainotheque", onW
       if (data) {
         if (data.currentQuestion !== undefined) setCurrentQuestion(data.currentQuestion);
         if (data.validated) setValidated(true);
-        if (data.validated) setShowVictoryLocal(true);
       }
     });
     return () => unsub();
   }, [progressRef]);
+
+  // 🧠 Synchronisation du statut de victoire pour tous les joueurs
+  useEffect(() => {
+    const unsubSolved = onValue(solvedRef, (snap) => {
+      const isSolved = snap.val();
+      if (isSolved) {
+        setShowVictoryLocal(true);
+      }
+    });
+    return unsubSolved;
+  }, [solvedRef]);
 
   // 💾 Sauvegarde dans Firebase
   const saveProgress = (updates) => {
@@ -78,8 +89,9 @@ export default function Grainotheque({ sessionId, roomName = "grainotheque", onW
       saveProgress({ currentQuestion: next });
     } else {
       setValidated(true);
-      setShowVictoryLocal(true);
       saveProgress({ validated: true });
+      // Marquer comme résolu pour tous les joueurs
+      update(solvedRef, true);
       if (onWin) onWin();
     }
   };
@@ -201,7 +213,7 @@ export default function Grainotheque({ sessionId, roomName = "grainotheque", onW
         )}
       </div>
 
-      {/* Fenêtre d’indice */}
+      {/* Fenêtre d'indice */}
       {showHint && (
         <div
           style={{
@@ -249,17 +261,22 @@ export default function Grainotheque({ sessionId, roomName = "grainotheque", onW
               Fermer
             </button>
           </div>
-          {showVictoryLocal && (
-            <div className="victory-overlay" role="dialog" aria-modal="true">
-              <div className="victory-card" style={{ textShadow: 'none', filter: 'none' }}>
-                <h2 style={{ textShadow: 'none', filter: 'none' }}>🎉 Succès !</h2>
-                <p style={{ textShadow: 'none', filter: 'none' }}>Épreuve validée — bravo !</p>
-                <div style={{display:'flex', gap:8, marginTop:12}}>
-                  <button onClick={() => setShowVictoryLocal(false)} className="puzzle-action-btn">Fermer</button>
-                </div>
-              </div>
+        </div>
+      )}
+
+      {/* Popup de victoire synchronisé */}
+      {showVictoryLocal && (
+        <div className="victory-overlay" role="dialog" aria-modal="true">
+          <div className="victory-card" style={{ textShadow: 'none', filter: 'none' }}>
+            <h2 style={{ textShadow: 'none', filter: 'none' }}>🎉 Signal Décodé !</h2>
+            <p style={{ textShadow: 'none', filter: 'none' }}>Salle radio opérationnelle — bravo !</p>
+            <p style={{ fontSize: '16px', fontStyle: 'italic', color: '#b0b0b0', marginTop: '12px', padding: '8px', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '4px', lineHeight: '1.4' }}>
+              "Félicitations ! Vous avez décodé des signaux si clairs que même les extraterrestres demandent vos coordonnées pour s'abonner à votre newsletter."
+            </p>
+            <div style={{display:'flex', gap:8, marginTop:12}}>
+              <button onClick={() => setShowVictoryLocal(false)} className="puzzle-action-btn">Fermer</button>
             </div>
-          )}
+          </div>
         </div>
       )}
     </div>

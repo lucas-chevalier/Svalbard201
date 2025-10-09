@@ -18,12 +18,15 @@ export default function Biosphere({ playerRole, sessionId, onWin, players, playe
   const [showContextPopup, setShowContextPopup] = useState(true);
   let infoContent;
 
+  // Synchronisation du statut de victoire pour tous les joueurs
   useEffect(() => {
     if (!sessionId) return;
-    const statusRef = ref(db, `sessions/${sessionId}/miniGameStatus/Biosphère`);
-    const unsub = onValue(statusRef, (snap) => {
-      const v = snap.val();
-      if (v) setShowVictoryLocal(true);
+    const solvedRef = ref(db, `sessions/${sessionId}/biosphere/solved`);
+    const unsub = onValue(solvedRef, (snap) => {
+      const isSolved = snap.val();
+      if (isSolved) {
+        setShowVictoryLocal(true);
+      }
     });
     return () => unsub();
   }, [sessionId]);
@@ -261,7 +264,8 @@ function TerminalEnergéticien({ sessionId, onWin }) {
     setMsgColor("#00ff66");
 
     if (sessionId && onWin) {
-      update(ref(db, `sessions/${sessionId}/miniGameStatus`), { "Biosphère": true });
+      // Marquer comme résolu pour tous les joueurs
+      update(ref(db, `sessions/${sessionId}/biosphere/solved`), true);
       onWin();
     }
   };
