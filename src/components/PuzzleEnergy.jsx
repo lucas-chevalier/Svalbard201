@@ -7,6 +7,7 @@ export default function PuzzleEnergy({ sessionId, playerRole, onWin, players, pl
   const [logs, setLogs] = useState([]);
   const [hintVisible, setHintVisible] = useState(false);
   const [showVictoryLocal, setShowVictoryLocal] = useState(false);
+  const [showContextPopup, setShowContextPopup] = useState(true);
   const lastActivity = useRef(Date.now());
   const energyRefPath = `sessions/${sessionId}/energy`;
 
@@ -387,6 +388,53 @@ export default function PuzzleEnergy({ sessionId, playerRole, onWin, players, pl
           )}
         </div>
       </div>
+
+      {/* Popup explicatif à l'arrivée */}
+      {showContextPopup && (
+        <div className="victory-overlay">
+          <div className="victory-card" style={{ maxWidth: '550px', textAlign: 'left', textShadow: 'none', filter: 'none' }}>
+            <h2 style={{ color: '#ffee00', marginBottom: '16px', textAlign: 'center', textShadow: 'none', filter: 'none' }}>⚡ RAPPORT LOG - CENTRALE ÉLECTRIQUE</h2>
+            
+            <div style={{ marginBottom: '16px', padding: '12px', background: 'rgba(255,0,0,0.2)', borderRadius: '6px', border: '1px solid #ff6666' }}>
+              <strong style={{ color: '#ff9999' }}>ALERTE SYSTÈME :</strong> Panne électrique détectée
+            </div>
+
+            <div style={{ lineHeight: '1.5', marginBottom: '20px' }}>
+              <p style={{ marginBottom: '12px' }}>
+                Le réseau électrique a été endommagé suite à une surcharge. Trois systèmes critiques demandent de l'énergie :
+              </p>
+              
+              <div style={{ marginLeft: '16px', marginBottom: '12px' }}>
+                <div style={{ marginBottom: '6px' }}>🔥 <strong>Chauffage</strong> - Système de survie</div>
+                <div style={{ marginBottom: '6px' }}>💧 <strong>Pompe</strong> - Approvisionnement en eau</div>
+                <div style={{ marginBottom: '6px' }}>🌱 <strong>Serre</strong> - Production alimentaire</div>
+              </div>
+
+              <p style={{ color: '#ffd700', fontWeight: 'bold' }}>
+                Trouvez la configuration qui stabilise l'alimentation sans surcharge...
+              </p>
+            </div>
+
+            <div style={{ textAlign: 'center' }}>
+              <button 
+                onClick={() => setShowContextPopup(false)}
+                style={{
+                  background: '#00ff66',
+                  color: '#000',
+                  border: 'none',
+                  padding: '12px 24px',
+                  borderRadius: '6px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  fontSize: '16px'
+                }}
+              >
+                Accéder aux commandes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { ref, onValue, update, set } from "firebase/database";
 export default function PuzzlePompe({ sessionId, playerRole, onWin, players, playerId, roomName }) {
   const [state, setState] = useState(null);
   const [logs, setLogs] = useState([]);
+  const [showContextPopup, setShowContextPopup] = useState(true);
   
   // Définir le chemin Firebase en premier
   const pompeRefPath = `sessions/${sessionId}/pompe`;
@@ -473,6 +474,53 @@ export default function PuzzlePompe({ sessionId, playerRole, onWin, players, pla
           )}
         </div>
       </div>
+
+      {/* Popup explicatif à l'arrivée */}
+      {showContextPopup && (
+        <div className="victory-overlay">
+          <div className="victory-card" style={{ maxWidth: '550px', textAlign: 'left', textShadow: 'none', filter: 'none' }}>
+            <h2 style={{ color: '#00eaff', marginBottom: '16px', textAlign: 'center', textShadow: 'none', filter: 'none' }}>💧 Système Hydraulique</h2>
+            
+            <div style={{ marginBottom: '16px', padding: '12px', background: 'rgba(255,0,0,0.2)', borderRadius: '6px', border: '1px solid #ff6666' }}>
+              <strong style={{ color: '#ff9999' }}>ALERTE SYSTÈME :</strong> Fuite détectée dans le réseau
+            </div>
+
+            <div style={{ lineHeight: '1.5', marginBottom: '20px' }}>
+              <p style={{ marginBottom: '12px' }}>
+                Une fuite compromet l'approvisionnement en eau de la station. Le système hydraulique nécessite une intervention d'urgence :
+              </p>
+              
+              <div style={{ marginLeft: '16px', marginBottom: '12px' }}>
+                <div style={{ marginBottom: '6px' }}>🔍 <strong>Identifier</strong> la zone de fuite</div>
+                <div style={{ marginBottom: '6px' }}>🚰 <strong>Isoler</strong> la section avec les vannes</div>
+                <div style={{ marginBottom: '6px' }}>⚙️ <strong>Ajuster</strong> la puissance de pompe</div>
+              </div>
+
+              <p style={{ color: '#ffd700', fontWeight: 'bold' }}>
+                Collaborez pour rétablir une pression stable sans surcharge...
+              </p>
+            </div>
+
+            <div style={{ textAlign: 'center' }}>
+              <button 
+                onClick={() => setShowContextPopup(false)}
+                style={{
+                  background: '#00eaff',
+                  color: '#000',
+                  border: 'none',
+                  padding: '12px 24px',
+                  borderRadius: '6px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  fontSize: '16px'
+                }}
+              >
+                Accéder aux commandes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

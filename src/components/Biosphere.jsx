@@ -15,6 +15,7 @@ const botaniqueData = [
 
 export default function Biosphere({ playerRole, sessionId, onWin, players, playerId, roomName }) {
   const [showVictoryLocal, setShowVictoryLocal] = useState(false);
+  const [showContextPopup, setShowContextPopup] = useState(true);
   let infoContent;
 
   useEffect(() => {
@@ -245,6 +246,53 @@ function TerminalEnergéticien({ sessionId, onWin }) {
 
       {codes.length < 3 && <div style={{ marginBottom: '1em', color: '#00ffcc' }}>Entrez trois codes pour valider la combinaison.</div>}
       {message && <div style={{ marginTop: '1.5em', color: msgColor, fontWeight: 'bold', fontSize: '1.1em' }}>{message}</div>}
+
+      {/* Popup explicatif à l'arrivée */}
+      {showContextPopup && (
+        <div className="victory-overlay">
+          <div className="victory-card" style={{ maxWidth: '580px', textAlign: 'left', textShadow: 'none', filter: 'none' }}>
+            <h2 style={{ color: '#00ff66', marginBottom: '16px', textAlign: 'center', textShadow: 'none', filter: 'none' }}>🌱 RAPPORT LOG - BIOSPHÈRE</h2>
+            
+            <div style={{ marginBottom: '16px', padding: '12px', background: 'rgba(255,165,0,0.2)', borderRadius: '6px', border: '1px solid #ffaa00' }}>
+              <strong style={{ color: '#ffcc66' }}>MAINTENANCE REQUISE :</strong> Optimisation des cultures nécessaire
+            </div>
+
+            <div style={{ lineHeight: '1.5', marginBottom: '20px' }}>
+              <p style={{ marginBottom: '12px' }}>
+                La production alimentaire de la station doit être optimisée. Sélectionnez une combinaison de plantes selon les critères suivants :
+              </p>
+              
+              <div style={{ marginLeft: '16px', marginBottom: '12px' }}>
+                <div style={{ marginBottom: '6px' }}>💧 <strong>Besoins en eau</strong> - Équilibrer la consommation hydrique</div>
+                <div style={{ marginBottom: '6px' }}>⚡ <strong>Besoins énergétiques</strong> - Gérer l'éclairage artificiel</div>
+                <div style={{ marginBottom: '6px' }}>🔬 <strong>Fonctions biologiques</strong> - Assurer diversité et nutrition</div>
+              </div>
+
+              <p style={{ color: '#ffd700', fontWeight: 'bold' }}>
+                Analysez les données botaniques pour composer un écosystème viable...
+              </p>
+            </div>
+
+            <div style={{ textAlign: 'center' }}>
+              <button 
+                onClick={() => setShowContextPopup(false)}
+                style={{
+                  background: '#00ff66',
+                  color: '#000',
+                  border: 'none',
+                  padding: '12px 24px',
+                  borderRadius: '6px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  fontSize: '16px'
+                }}
+              >
+                Accéder aux données
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

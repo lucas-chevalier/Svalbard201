@@ -27,6 +27,8 @@ export default function SalleCrise({ sessionId, playerRole, playerId, session, o
   console.log("Role reçu:", playerRole);  // Debug
   const [phase, setPhase] = useState('diagnostic'); // diagnostic, decision, resultat
   const [phaseTimer, setPhaseTimer] = useState(null);
+  const [showContextPopup, setShowContextPopup] = useState(true);
+  const [readyPlayers, setReadyPlayers] = useState({});
   const [indicators, setIndicators] = useState({
     eau: { niveau: 70, pollution: 30, evaporation: 50 },
     energie: { production: 60, consommation: 40, rendement: 80 },
@@ -41,6 +43,7 @@ export default function SalleCrise({ sessionId, playerRole, playerId, session, o
   const indicatorRef = ref(db, `sessions/${sessionId}/crise/indicators`);
   const choicesRef = ref(db, `sessions/${sessionId}/crise/choices`);
   const phaseRef = ref(db, `sessions/${sessionId}/crise/phase`);
+  const readyPlayersRef = ref(db, `sessions/${sessionId}/crise/readyPlayers`);
 
   // Gestion des phases et du timer
   useEffect(() => {
@@ -55,12 +58,35 @@ export default function SalleCrise({ sessionId, playerRole, playerId, session, o
       }
     });
 
-    // Si c'est le chef de session (host), il gère les transitions de phase
+    // Écouter les joueurs prêts
+    const unsubReady = onValue(readyPlayersRef, (snap) => {
+      const val = snap.val() || {};
+      setReadyPlayers(val);
+    });
+
+    return () => {
+      unsubPhase();
+      unsubReady();
+    };
+  }, [phaseRef, readyPlayersRef]);
+
+  // Démarrage du timer uniquement quand tous les joueurs sont prêts
+  useEffect(() => {
+    if (!session?.players) return;
+    
+    const allPlayerIds = Object.keys(session.players);
+    const readyPlayerIds = Object.keys(readyPlayers);
+    const allPlayersReady = allPlayerIds.length > 0 && 
+                           allPlayerIds.every(id => readyPlayers[id] === true);
+
     const isHost = playerId === session?.host;
-    if (isHost) {
-      // Initialisation de la première phase si nécessaire
+    
+    if (isHost && allPlayersReady) {
+      // Vérifier si le timer n'a pas encore été démarré
       get(phaseRef).then((snap) => {
-        if (!snap.exists()) {
+        const currentPhaseData = snap.val();
+        if (!currentPhaseData || !currentPhaseData.phaseStartTime) {
+          // Démarrer la première phase
           set(phaseRef, {
             currentPhase: 'diagnostic',
             phaseStartTime: Date.now(),
@@ -69,9 +95,14 @@ export default function SalleCrise({ sessionId, playerRole, playerId, session, o
         }
       });
     }
+  }, [readyPlayers, session, playerId, phaseRef]);
 
-    return unsubPhase;
-  }, [phaseRef, playerId, session]);
+  // Fonction pour initier la procédure (fermer popup et marquer comme prêt)
+  const handleInitiateProcedure = () => {
+    setShowContextPopup(false);
+    // Marquer ce joueur comme prêt dans Firebase
+    set(ref(db, `sessions/${sessionId}/crise/readyPlayers/${playerId}`), true);
+  };
 
   // Chargement des données
   useEffect(() => {
@@ -382,11 +413,114 @@ export default function SalleCrise({ sessionId, playerRole, playerId, session, o
         </div>
       </div>
 
+      {/* Indicateur des joueurs prêts */}
+      {session?.players && (
+        <div style={{ 
+          padding: '10px', 
+          margin: '10px 0', 
+          background: 'rgba(0,0,0,0.3)', 
+          borderRadius: '6px',
+          fontSize: '14px'
+        }}>
+          <strong>Statut de l'équipe :</strong>
+          {Object.entries(session.players).map(([id, player]) => (
+            <span key={id} style={{ 
+              marginLeft: '10px',
+              color: readyPlayers[id] ? '#00ff66' : '#ffaa00'
+            }}>
+              {player.name} {readyPlayers[id] ? '✓' : '⏳'}
+            </span>
+          ))}
+        </div>
+      )}
+
       <div className="main-content">
-        {phase === 'diagnostic' && renderDiagnostic()}
-        {phase === 'decision' && renderDecision()}
-        {phase === 'resultat' && renderResultat()}
+        {/* Si le joueur a cliqué mais que tous ne sont pas encore prêts, afficher l'écran d'attente */}
+        {readyPlayers[playerId] && session?.players && 
+         !Object.keys(session.players).every(id => readyPlayers[id]) ? (
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: '300px',
+            textAlign: 'center',
+            padding: '40px',
+            background: 'rgba(0,20,20,0.8)',
+            borderRadius: '10px',
+            border: '1px solid #004444'
+          }}>
+            <div style={{ fontSize: '48px', marginBottom: '20px' }}>⏳</div>
+            <h2 style={{ color: '#00ffcc', marginBottom: '16px' }}>Attente des autres membres de l'équipe</h2>
+            <p style={{ color: '#cccccc', lineHeight: '1.5', marginBottom: '20px' }}>
+              Vous avez initié la procédure d'urgence.<br/>
+              La mission démarrera dès que tous les membres auront confirmé leur présence.
+            </p>
+            <div style={{ 
+              padding: '15px', 
+              background: 'rgba(255,255,0,0.1)', 
+              borderRadius: '6px',
+              border: '1px solid #ffff00'
+            }}>
+              <strong style={{ color: '#ffff00' }}>⚠️ Veuillez patienter...</strong>
+            </div>
+          </div>
+        ) : (
+          // Contenu normal du jeu si tous sont prêts ou si ce joueur n'a pas encore cliqué
+          <>
+            {phase === 'diagnostic' && renderDiagnostic()}
+            {phase === 'decision' && renderDecision()}
+            {phase === 'resultat' && renderResultat()}
+          </>
+        )}
       </div>
+
+      {/* Popup explicatif à l'arrivée */}
+      {showContextPopup && (
+        <div className="victory-overlay">
+          <div className="victory-card" style={{ maxWidth: '600px', textAlign: 'left', textShadow: 'none', filter: 'none' }}>
+            <h2 style={{ color: '#ff6b6b', marginBottom: '16px', textAlign: 'center', textShadow: 'none', filter: 'none' }}>🚨 RAPPORT LOG - SALLE DE CRISE</h2>
+            
+            <div style={{ marginBottom: '16px', padding: '12px', background: 'rgba(255,0,0,0.2)', borderRadius: '6px', border: '1px solid #ff6666' }}>
+              <strong style={{ color: '#ff9999' }}>SITUATION CRITIQUE :</strong> Défaillances multiples détectées
+            </div>
+
+            <div style={{ lineHeight: '1.5', marginBottom: '20px' }}>
+              <p style={{ marginBottom: '12px' }}>
+                Plusieurs systèmes vitaux de la station présentent des anomalies. Une procédure d'urgence coordonnée est requise :
+              </p>
+              
+              <div style={{ marginLeft: '16px', marginBottom: '12px' }}>
+                <div style={{ marginBottom: '6px' }}>📊 <strong>Phase Diagnostic</strong> - Analyser les indicateurs selon votre spécialité</div>
+                <div style={{ marginBottom: '6px' }}>💡 <strong>Phase Décision</strong> - Proposer une solution d'intervention</div>
+                <div style={{ marginBottom: '6px' }}>⚖️ <strong>Phase Résultat</strong> - Évaluation collective des choix</div>
+              </div>
+
+              <p style={{ color: '#ffd700', fontWeight: 'bold' }}>
+                La coordination entre équipes déterminera le succès de l'intervention...
+              </p>
+            </div>
+
+            <div style={{ textAlign: 'center' }}>
+              <button 
+                onClick={handleInitiateProcedure}
+                style={{
+                  background: '#ff6b6b',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '12px 24px',
+                  borderRadius: '6px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  fontSize: '16px'
+                }}
+              >
+                Initier la procédure
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
