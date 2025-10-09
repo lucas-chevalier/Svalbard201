@@ -8,6 +8,7 @@ export default function PuzzleWater({ sessionId, roomName, size = 8, onWin }) {
   const [grid, setGrid] = useState([]);
   const [rotations, setRotations] = useState([]);
   const [won, setWon] = useState(false);
+  const [showVictoryLocal, setShowVictoryLocal] = useState(false);
   const [alreadyLoaded, setAlreadyLoaded] = useState(false);
   const TILE = 64;
 
@@ -167,6 +168,11 @@ export default function PuzzleWater({ sessionId, roomName, size = 8, onWin }) {
     if (!won && powered.size === size*size) {
       setWon(true);
       onWin?.();
+      // mark solved in firebase and show overlay for all
+      set(ref(db, `sessions/${sessionId}/puzzles/${roomName}/solved`), true).catch(console.error);
+      setShowVictoryLocal(true);
+      // also set miniGameStatus for room to keep consistent with GameRoom progression
+      set(ref(db, `sessions/${sessionId}/miniGameStatus/${roomName}`), true).catch(console.error);
     }
   }, [img, grid, rotations, won, size, onWin, alreadyLoaded]);
 
@@ -187,6 +193,17 @@ export default function PuzzleWater({ sessionId, roomName, size = 8, onWin }) {
 
   return (
     <div style={{ display:"grid", placeItems:"center", marginTop:20, position:"relative" }}>
+      {showVictoryLocal && (
+        <div className="victory-overlay" role="dialog" aria-modal="true">
+          <div className="victory-card">
+            <h2>🎉 Succès !</h2>
+            <p>Ressortir du réseau hydraulique complété.</p>
+            <div style={{display:'flex', gap:8, marginTop:12}}>
+              <button onClick={() => setShowVictoryLocal(false)} className="puzzle-action-btn">Fermer</button>
+            </div>
+          </div>
+        </div>
+      )}
       <canvas
         ref={canvasRef}
         width={600}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ref, update } from "firebase/database";
+import { ref, update, onValue } from "firebase/database";
 import { db } from "../firebase";
 
 const botaniqueData = [
@@ -14,7 +14,18 @@ const botaniqueData = [
 ];
 
 export default function Biosphere({ playerRole, sessionId, onWin, players, playerId, roomName }) {
+  const [showVictoryLocal, setShowVictoryLocal] = useState(false);
   let infoContent;
+
+  useEffect(() => {
+    if (!sessionId) return;
+    const statusRef = ref(db, `sessions/${sessionId}/miniGameStatus/Biosphère`);
+    const unsub = onValue(statusRef, (snap) => {
+      const v = snap.val();
+      if (v) setShowVictoryLocal(true);
+    });
+    return () => unsub();
+  }, [sessionId]);
 
   if (playerRole === "Hydrologue") {
     infoContent = (
@@ -86,6 +97,17 @@ export default function Biosphere({ playerRole, sessionId, onWin, players, playe
 
   return (
     <div className="biosphere-room" style={{ minHeight: "100vh", position: "relative" }}>
+      {showVictoryLocal && (
+        <div className="victory-overlay" role="dialog" aria-modal="true">
+          <div className="victory-card">
+            <h2>🎉 Succès !</h2>
+            <p>Biosphère équilibrée — bravo !</p>
+            <div style={{display:'flex', gap:8, marginTop:12}}>
+              <button onClick={() => setShowVictoryLocal(false)} className="puzzle-action-btn">Fermer</button>
+            </div>
+          </div>
+        </div>
+      )}
       <div style={{
         position: "absolute",
         left: "10%",

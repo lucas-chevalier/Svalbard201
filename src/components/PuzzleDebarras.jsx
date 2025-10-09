@@ -34,6 +34,7 @@ export default function PuzzleDebarras({ sessionId, roomName, onWin, playerRole,
   const [message, setMessage] = useState('');
   const [placements, setPlacements] = useState({});
   const [slotsState, setSlotsState] = useState([]);
+  const [showVictoryLocal, setShowVictoryLocal] = useState(false);
 
   const debarrasRefPath = sessionId ? `sessions/${sessionId}/puzzles/${roomName}` : null;
   const roleOrder = ['Biologiste', 'Énergéticien', 'Hydrologue'];
@@ -158,6 +159,17 @@ export default function PuzzleDebarras({ sessionId, roomName, onWin, playerRole,
       unsub();
     };
   }, [debarrasRefPath, sessionPlayers]);
+
+  // Listen to miniGameStatus for this room to show global victory popup
+  useEffect(() => {
+    if (!sessionId) return;
+    const statusRef = ref(db, `sessions/${sessionId}/miniGameStatus/${roomName}`);
+    const unsubStatus = onValue(statusRef, (snap) => {
+      const v = snap.val();
+      if (v) setShowVictoryLocal(true);
+    });
+    return () => unsubStatus();
+  }, [sessionId, roomName]);
 
   // useEffect séparé pour gérer l'affichage des questions basé sur le changement de joueur
   useEffect(() => {
@@ -372,6 +384,17 @@ export default function PuzzleDebarras({ sessionId, roomName, onWin, playerRole,
   return (
     <div className={isMyTurn ? 'puzzle-container' : 'puzzle-container inactive-dim'}>
       <div className="puzzle-center-wrapper">
+        {showVictoryLocal && (
+          <div className="victory-overlay" role="dialog" aria-modal="true">
+            <div className="victory-card">
+              <h2>🎉 Succès !</h2>
+              <p>Énigme résolue — bravo !</p>
+              <div style={{display:'flex', gap:8, marginTop:12}}>
+                <button onClick={() => setShowVictoryLocal(false)} className="puzzle-action-btn">Fermer</button>
+              </div>
+            </div>
+          </div>
+        )}
         <h3 className="puzzle-title">Svalbard 201 - Puzzle Débarras</h3>
 
         {/* Affichage des rôles de tous les joueurs */}

@@ -31,6 +31,7 @@ const QUESTIONS = [
 ];
 
 export default function Grainotheque({ sessionId, roomName = "grainotheque", onWin, playerRole, players, playerId }) {
+  const [showVictoryLocal, setShowVictoryLocal] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [response, setResponse] = useState("");
   const [validated, setValidated] = useState(false);
@@ -47,6 +48,7 @@ export default function Grainotheque({ sessionId, roomName = "grainotheque", onW
       if (data) {
         if (data.currentQuestion !== undefined) setCurrentQuestion(data.currentQuestion);
         if (data.validated) setValidated(true);
+        if (data.validated) setShowVictoryLocal(true);
       }
     });
     return () => unsub();
@@ -246,6 +248,17 @@ export default function Grainotheque({ sessionId, roomName = "grainotheque", onW
               Fermer
             </button>
           </div>
+          {showVictoryLocal && (
+            <div className="victory-overlay" role="dialog" aria-modal="true">
+              <div className="victory-card">
+                <h2>🎉 Succès !</h2>
+                <p>Épreuve validée — bravo !</p>
+                <div style={{display:'flex', gap:8, marginTop:12}}>
+                  <button onClick={() => setShowVictoryLocal(false)} className="puzzle-action-btn">Fermer</button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

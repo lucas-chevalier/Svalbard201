@@ -6,6 +6,7 @@ export default function PuzzleEnergy({ sessionId, playerRole, onWin, players, pl
   const [state, setState] = useState(null);
   const [logs, setLogs] = useState([]);
   const [hintVisible, setHintVisible] = useState(false);
+  const [showVictoryLocal, setShowVictoryLocal] = useState(false);
   const lastActivity = useRef(Date.now());
   const energyRefPath = `sessions/${sessionId}/energy`;
 
@@ -63,6 +64,7 @@ export default function PuzzleEnergy({ sessionId, playerRole, onWin, players, pl
       } else {
         setState(v);
         setLogs(v.logs || []);
+        if (v.solved) setShowVictoryLocal(true);
         // Synchroniser les états locaux avec Firebase
         if (v.config?.modules) {
           setLocalHeatR(v.config.modules.heat?.R || 1);
@@ -248,6 +250,17 @@ export default function PuzzleEnergy({ sessionId, playerRole, onWin, players, pl
 
   return (
     <div style={{position:'relative'}}>
+      {showVictoryLocal && (
+        <div className="victory-overlay" role="dialog" aria-modal="true">
+          <div className="victory-card">
+            <h2>🎉 Succès !</h2>
+            <p>Réseau énergétique stabilisé.</p>
+            <div style={{display:'flex', gap:8, marginTop:12}}>
+              <button onClick={() => setShowVictoryLocal(false)} className="puzzle-action-btn">Fermer</button>
+            </div>
+          </div>
+        </div>
+      )}
       <h3>⚡ Module Énergie — Contrôle</h3>
       <div style={{display:'flex', gap:16}}>
         <div style={{minWidth:260}}>
