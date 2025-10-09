@@ -26,6 +26,7 @@ export default function Biosphere({ playerRole, sessionId, onWin, players, playe
       const isSolved = snap.val();
       if (isSolved) {
         setShowVictoryLocal(true);
+        setShowContextPopup(false); // Fermer automatiquement le popup contextuel
       }
     });
     return () => unsub();
@@ -171,16 +172,13 @@ export default function Biosphere({ playerRole, sessionId, onWin, players, playe
       )}
 
       <div style={{
-        position: "absolute",
-        left: "10%",
-        right: "10%",
-        bottom: "10%",
-        zIndex: 2,
+        position: "relative",
+        minHeight: "calc(100vh - 100px)",
+        padding: "20px",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        justifyContent: "flex-end",
-        overflowY: "auto",
+        justifyContent: "center",
         color: "#00ff66",
         fontFamily: "Consolas, monospace",
       }}>
