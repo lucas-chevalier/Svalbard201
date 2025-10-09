@@ -10,7 +10,6 @@ const roles = [
   { name: "Biologiste", icon: <Beaker size={20} />, color: "#00ff66" },
 ];
 
-// --- Génération du labyrinthe pour la pompe
 function generatePerfectMaze(size = 8) {
   const NBIT = 1, EBIT = 2, SBIT = 4, WBIT = 8;
   const DIRS = [
@@ -49,17 +48,18 @@ function generatePerfectMaze(size = 8) {
 export default function Lobby({ onJoin }) {
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
-
-  // --- États pour la vidéo d’intro
   const [showVideo, setShowVideo] = useState(true);
   const [loadingVideo, setLoadingVideo] = useState(true);
+  const [muted, setMuted] = useState(true); // ✅ Hook déplacé ici
 
-  // --- Préchargement de la vidéo pour démarrage plus rapide
+  // --- Préchargement de la vidéo
   useEffect(() => {
     const video = document.createElement("video");
     video.src = "/assets/intro.mp4";
     video.preload = "auto";
   }, []);
+
+  const toggleMute = () => setMuted((m) => !m);
 
   const createGame = async () => {
     if (!name.trim()) return alert("Entre ton pseudo !");
@@ -71,29 +71,10 @@ export default function Lobby({ onJoin }) {
       state: "waiting",
       host: playerId,
       players: {
-        [playerId]: {
-          id: playerId,
-          name,
-          role: "Aucun",
-          color: "#666666",
-        },
+        [playerId]: { id: playerId, name, role: "Aucun", color: "#666666" },
       },
-      chat: [],
-      puzzles: { 
-        water: { 
-          grid: waterGrid, 
-          rotations: waterGrid.map(row => row.map(() => Math.floor(Math.random() * 4))) 
-        } 
-      },
-      miniGameStatus: { 
-        "Pompe hydraulique": false,
-        "Débarras": false,
-        "Système de survie": false,
-        "Biosphère": false,
-        "Salle radio": false,
-        "Centrale électrique": false
-      },
-      timer: null
+      puzzles: { water: { grid: waterGrid } },
+      miniGameStatus: {},
     });
 
     onJoin && onJoin(sid, playerId);
@@ -104,19 +85,17 @@ export default function Lobby({ onJoin }) {
     const sessionRef = ref(db, `sessions/${code}`);
     const snapshot = await get(sessionRef);
     if (!snapshot.exists()) return alert("Session introuvable !");
-
     const playerId = uuidv4();
     await update(ref(db, `sessions/${code}/players/${playerId}`), {
       id: playerId,
       name,
       role: "Aucun",
-      color: "#666666"
+      color: "#666666",
     });
-
     onJoin && onJoin(code, playerId);
   };
 
-  // --- Si la vidéo d’intro est en cours
+  // --- Écran vidéo
   if (showVideo) {
     return (
       <div
@@ -134,10 +113,14 @@ export default function Lobby({ onJoin }) {
           src="/assets/intro.mp4"
           autoPlay
           playsInline
-          muted={false}
+          muted={muted}
           preload="auto"
           onCanPlayThrough={() => setLoadingVideo(false)}
           onEnded={() => setShowVideo(false)}
+          onError={(e) => {
+            console.error("Erreur de chargement vidéo :", e);
+            setShowVideo(false);
+          }}
           style={{ width: "100%", height: "100%", objectFit: "cover" }}
         />
 
@@ -145,7 +128,7 @@ export default function Lobby({ onJoin }) {
           <div
             style={{
               position: "absolute",
-              top: 0, left: 0, right: 0, bottom: 0,
+              inset: 0,
               background: "#000",
               color: "#00ff66",
               display: "flex",
@@ -157,7 +140,8 @@ export default function Lobby({ onJoin }) {
             Chargement de la séquence d’introduction...
           </div>
         )}
-                        {/* Option : bouton "Passer l'intro" */}
+
+        {/* Bouton Passer l’intro */}
         <button
           onClick={() => setShowVideo(false)}
           style={{
@@ -176,11 +160,31 @@ export default function Lobby({ onJoin }) {
         >
           Passer l’intro ⏩
         </button>
+
+        {/* 🔊 Bouton Activer le son */}
+        <button
+          onClick={toggleMute}
+          style={{
+            position: "absolute",
+            bottom: "40px",
+            left: "60px",
+            background: muted ? "#444" : "#00ff66",
+            border: "none",
+            color: muted ? "#ddd" : "#000",
+            padding: "10px 20px",
+            borderRadius: "8px",
+            fontWeight: "bold",
+            cursor: "pointer",
+            boxShadow: muted ? "0 0 8px #444" : "0 0 10px #00ff66",
+          }}
+        >
+          {muted ? "🔇 Activer le son" : "🔊 Couper le son"}
+        </button>
       </div>
     );
   }
 
-  // --- Sinon, on affiche le lobby normal
+  // --- Écran du lobby après la vidéo
   return (
     <div className="lobby fallout-terminal">
       <div className="vault-title">🧬 Svalbard201</div>
@@ -197,9 +201,7 @@ export default function Lobby({ onJoin }) {
       <div className="roles-info">
         <h4>Rôles disponibles :</h4>
         <ul>
-          {roles.map((r,i)=>(
-            <li key={i} style={{color:r.color}}>{r.icon} {r.name}</li>
-          ))}
+          {roles.map((r,i)=>(<li key={i} style={{color:r.color}}>{r.icon} {r.name}</li>))}
         </ul>
       </div>
     </div>

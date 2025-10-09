@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { ref, onValue, set, update } from "firebase/database";
 import { db } from "../firebase";
 import { Beaker, Zap, Droplets, ShieldAlert, SkipForward } from "lucide-react";
@@ -17,7 +17,7 @@ const roleColors = {
   Aucun: "#666666",
 };
 
-// --- Génération du puzzle "water" ---
+// Génération du puzzle "water"
 function generatePerfectMaze(size = 8) {
   const NBIT = 1, EBIT = 2, SBIT = 4, WBIT = 8;
   const DIRS = [
@@ -29,12 +29,7 @@ function generatePerfectMaze(size = 8) {
   const inBounds = (x, y) => x >= 0 && y >= 0 && x < size && y < size;
   const key = (x, y) => `${x},${y}`;
   const cells = Array.from({ length: size }, () =>
-    Array.from({ length: size }, () => ({
-      open: 0,
-      base: "blank",
-      kind: "pipe",
-      rot: 0,
-    }))
+    Array.from({ length: size }, () => ({ open: 0, base: "blank", kind: "pipe", rot: 0 }))
   );
   const visited = new Set();
   const stack = [];
@@ -46,10 +41,8 @@ function generatePerfectMaze(size = 8) {
     const cur = stack[stack.length - 1];
     const options = [];
     for (const d of DIRS) {
-      const nx = cur.x + d.dx,
-        ny = cur.y + d.dy;
-      if (inBounds(nx, ny) && !visited.has(key(nx, ny)))
-        options.push({ nx, ny, d });
+      const nx = cur.x + d.dx, ny = cur.y + d.dy;
+      if (inBounds(nx, ny) && !visited.has(key(nx, ny))) options.push({ nx, ny, d });
     }
     if (options.length) {
       const { nx, ny, d } = options[Math.floor(Math.random() * options.length)];
@@ -68,26 +61,33 @@ export default function WaitingRoom({ sessionId, playerId, onStart }) {
   const [showVideo, setShowVideo] = useState(false);
   const [videoEnded, setVideoEnded] = useState(false);
   const [loadingVideo, setLoadingVideo] = useState(true);
+  const [muted, setMuted] = useState(true);
 
+  const videoRef = useRef(null);
   const sessionRef = ref(db, `sessions/${sessionId}`);
+
+  // Préchargement vidéo dès le montage
+  useEffect(() => {
+    const video = document.createElement("video");
+    video.src = "/assets/briefing.mp4";
+    video.preload = "auto";
+    videoRef.current = video;
+  }, []);
 
   useEffect(() => {
     const unsub = onValue(sessionRef, (snap) => {
       const data = snap.val();
       if (!data) return;
-
       setSession(data);
 
-      if (data.players && data.players[playerId] && !data.players[playerId].role) {
+      if (data.players?.[playerId] && !data.players[playerId].role) {
         const playerRef = ref(db, `sessions/${sessionId}/players/${playerId}`);
         update(playerRef, { role: "Aucun", color: roleColors["Aucun"] });
       }
 
-      // --- Lancement vidéo briefing ---
-      if (data?.state === "video") setShowVideo(true);
+      if (data.state === "video" && !videoEnded) setShowVideo(true);
 
-      // --- Passage au jeu après vidéo ---
-      if (data?.state === "playing" && !videoEnded) {
+      if (data.state === "playing" && !videoEnded) {
         const puzzleRef = ref(db, `sessions/${sessionId}/puzzles/water`);
         onValue(
           puzzleRef,
@@ -104,6 +104,7 @@ export default function WaitingRoom({ sessionId, playerId, onStart }) {
         onStart(sessionId, playerId);
       }
     });
+
     return () => unsub();
   }, [sessionId, playerId, onStart, videoEnded]);
 
@@ -112,11 +113,7 @@ export default function WaitingRoom({ sessionId, playerId, onStart }) {
   const isHost = String(session.host) === String(playerId);
   const player = session.players?.[playerId];
   const playerRole = player?.role || "Aucun";
-
-  const takenRoles = Object.values(session.players || {})
-    .map((p) => p.role)
-    .filter((r) => r && r !== "Aucun");
-
+  const takenRoles = Object.values(session.players || {}).map((p) => p.role).filter((r) => r && r !== "Aucun");
   const allRoles = ["Hydrologue", "Énergéticien", "Biologiste"];
 
   const chooseRole = async (role) => {
@@ -126,15 +123,11 @@ export default function WaitingRoom({ sessionId, playerId, onStart }) {
   };
 
   const allReady =
-    Object.values(session.players || {}).every(
-      (p) => p.role && p.role !== "Aucun"
-    ) && Object.keys(session.players || {}).length >= 2;
+    Object.values(session.players || {}).every((p) => p.role && p.role !== "Aucun") &&
+    Object.keys(session.players || {}).length >= 2;
 
   const startGame = async () => {
-    if (!allReady) {
-      alert("Tous les joueurs doivent choisir un rôle avant de commencer !");
-      return;
-    }
+    if (!allReady) return alert("Tous les joueurs doivent choisir un rôle avant de commencer !");
     await update(sessionRef, { state: "video" });
   };
 
@@ -144,13 +137,9 @@ export default function WaitingRoom({ sessionId, playerId, onStart }) {
     setVideoEnded(true);
   };
 
-  const skipVideo = async () => {
-    if (isHost) await update(sessionRef, { state: "playing" });
-    setShowVideo(false);
-    setVideoEnded(true);
-  };
+  const skipVideo = async () => handleVideoEnd();
 
-  // --- Écran de vidéo de briefing ---
+  // --- Vidéo de briefing ---
   if (showVideo) {
     return (
       <div
@@ -160,56 +149,69 @@ export default function WaitingRoom({ sessionId, playerId, onStart }) {
           background: "#000",
           zIndex: 9999,
           display: "flex",
+          flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          flexDirection: "column",
         }}
       >
         <video
+          ref={videoRef}
           src="/assets/briefing.mp4"
           autoPlay
           playsInline
-          muted={false}
+          muted={muted}
           onCanPlayThrough={() => setLoadingVideo(false)}
           onEnded={handleVideoEnd}
-          style={{ width: "80%", height: "80%", objectFit: "cover" }}
+          style={{ width: "80%", height: "80%", objectFit: "contain", background: "#000" }}
         />
+
         {loadingVideo && (
-          <p
-            style={{
-              color: "#00ff99",
-              marginTop: 12,
-              fontFamily: "monospace",
-              fontSize: "1.2em",
-            }}
-          >
+          <p style={{ color: "#00ff99", marginTop: 12, fontFamily: "monospace", fontSize: "1.2em" }}>
             Chargement de la séquence de briefing...
           </p>
         )}
 
-        <button
-          onClick={skipVideo}
-          style={{
-            marginTop: 20,
-            background: "#00ff99",
-            color: "#000",
-            border: "none",
-            borderRadius: 8,
-            padding: "10px 18px",
-            fontWeight: "bold",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-          }}
-        >
-          Passer la vidéo <SkipForward size={18} />
-        </button>
+        <div style={{ display: "flex", gap: 12, marginTop: 20 }}>
+          <button
+            onClick={() => setMuted(!muted)}
+            style={{
+              background: "#00ff66",
+              border: "none",
+              borderRadius: 8,
+              padding: "10px 18px",
+              fontWeight: "bold",
+              cursor: "pointer",
+            }}
+          >
+            {muted ? "🔇 Activer le son" : "🔊 Couper le son"}
+          </button>
+
+        {isHost && (
+            <button
+              onClick={skipVideo}
+              style={{
+                marginTop: 20,
+                background: "#00ff99",
+                color: "#000",
+                border: "none",
+                borderRadius: 8,
+                padding: "10px 18px",
+                fontWeight: "bold",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              Passer la vidéo <SkipForward size={18} />
+            </button>
+          )}
+        </div>
       </div>
     );
   }
 
-  // --- Interface d’attente ---
+  // --- Lobby normal ---
   return (
     <div className="waiting-room fallout-terminal">
       <div className="vault-title">📡 Salle de Briefing</div>
@@ -218,16 +220,8 @@ export default function WaitingRoom({ sessionId, playerId, onStart }) {
       <h3>👥 Opérateurs connectés :</h3>
       <ul className="players-list">
         {Object.values(session.players || {}).map((p, i) => (
-          <li
-            key={i}
-            style={{
-              borderColor: p.color || "#00ff66",
-              opacity: p.id === playerId ? 1 : 0.9,
-            }}
-          >
-            <span style={{ color: p.color || "#00ff66" }}>
-              {p.role ? p.role : "Aucun"}
-            </span>
+          <li key={i} style={{ borderColor: p.color || "#00ff66", opacity: p.id === playerId ? 1 : 0.9 }}>
+            <span style={{ color: p.color || "#00ff66" }}>{p.role}</span>
             <span style={{ marginLeft: 6 }}>{p.name}</span>
             {String(session.host) === String(p.id) && <span> ★ Chef</span>}
           </li>
@@ -277,14 +271,7 @@ export default function WaitingRoom({ sessionId, playerId, onStart }) {
           🚀 Lancer la mission
         </button>
       ) : (
-        <div
-          style={{
-            marginTop: 32,
-            color: "#00ff99",
-            fontSize: "1.2em",
-            textAlign: "center",
-          }}
-        >
+        <div style={{ marginTop: 32, color: "#00ff99", fontSize: "1.2em", textAlign: "center" }}>
           En attente du lancement par le chef de mission...
         </div>
       )}
