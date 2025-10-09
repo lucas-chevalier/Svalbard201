@@ -33,8 +33,10 @@ export default function SalleCrise({ sessionId, playerRole, playerId, session, o
     bio: { croissance: 65, oxygene: 75, toxines: 45 }
   });
   const [playerChoice, setPlayerChoice] = useState('');
+  const [choiceConfirmed, setChoiceConfirmed] = useState(false);
   const [allChoices, setAllChoices] = useState({});
   const [globalScore, setGlobalScore] = useState(null);
+  const globalScoreRef = ref(db, `sessions/${sessionId}/crise/globalScore`);
 
   const indicatorRef = ref(db, `sessions/${sessionId}/crise/indicators`);
   const choicesRef = ref(db, `sessions/${sessionId}/crise/choices`);
@@ -111,9 +113,10 @@ export default function SalleCrise({ sessionId, playerRole, playerId, session, o
           phaseDuration: 60000, // 60 secondes par phase
         });
 
-        // Si on passe en phase résultat, calculer le score
+        // Si on passe en phase résultat, calculer le score et valider la salle
         if (nextPhase === 'resultat') {
           calculateScore();
+          if (typeof onWin === 'function') onWin();
         }
       }
     }, 1000);
@@ -123,25 +126,32 @@ export default function SalleCrise({ sessionId, playerRole, playerId, session, o
 
   const choices = {
     Hydrologue: [
-      { id: 'purifier_eau', label: 'Purifier l\'eau', desc: '+eau, -énergie' },
-      { id: 'distribuer_rapide', label: 'Distribution rapide', desc: '+énergie, -biosphère' },
-      { id: 'fermer_circuits', label: 'Fermer circuits', desc: '+sécurité, -souplesse' }
+      { id: 'purifier_eau', label: 'Purifier l’eau', desc: '“Tu lances la purification complète de l’eau : elle sera plus propre, mais la station consommera beaucoup d’électricité.”' },
+      { id: 'distribuer_rapide', label: 'Distribuer plus vite', desc: '“Tu accélères la distribution de l’eau : les systèmes sont plus performants, mais certaines zones risquent d’être trop arrosées ou polluées.”' },
+      { id: 'fermer_circuits', label: 'Fermer certains circuits', desc: '“Tu coupes les canalisations secondaires : c’est plus sûr, mais l’eau n’atteindra pas toutes les zones.”' }
     ],
     'Énergéticien': [
-      { id: 'stabiliser_reseau', label: 'Stabiliser réseau', desc: '+fiabilité, -production' },
-      { id: 'maximiser_rendement', label: 'Maximiser rendement', desc: '+énergie, +pollution' },
-      { id: 'rediriger_vers_biosphere', label: 'Rediriger vers biosphère', desc: '+coop, -autonomie' }
+      { id: 'stabiliser_reseau', label: 'Stabiliser le réseau', desc: '“Tu rends le réseau plus stable : moins de pannes, mais un peu moins d’électricité produite.”' },
+      { id: 'maximiser_rendement', label: 'Pousser les générateurs', desc: '“Tu augmentes la puissance : plus d’électricité, mais ça chauffe et pollue davantage.”' },
+      { id: 'rediriger_vers_biosphere', label: 'Donner du courant à la biosphère', desc: '“Tu rediriges de l’énergie vers les serres : les plantes seront mieux, mais la centrale tournera moins fort.”' }
     ],
     Biologiste: [
-      { id: 'renforcer_biodiversite', label: 'Renforcer biodiversité', desc: '+résilience, -rendement' },
-      { id: 'croissance_rapide', label: 'Croissance rapide', desc: '+production, +consommation' },
-      { id: 'filtrer_toxines', label: 'Filtrer toxines', desc: '+pureté, -vitesse' }
+      { id: 'renforcer_biodiversite', label: 'Planter plus d’espèces', desc: '“Tu diversifies les plantes : le système sera plus solide, mais les récoltes pousseront moins vite.”' },
+      { id: 'croissance_rapide', label: 'Faire pousser plus vite', desc: '“Tu stimules la croissance : plus de nourriture, mais ça vide les réserves d’eau et d’énergie.”' },
+      { id: 'filtrer_toxines', label: 'Activer les filtres naturels', desc: '“Tu actives des plantes purificatrices : l’air et l’eau seront plus sains, mais la croissance ralentira un peu.”' }
     ]
   };
 
   const handleChoice = (choice) => {
     setPlayerChoice(choice);
-    set(ref(db, `sessions/${sessionId}/crise/choices/${playerRole}`), choice);
+    setChoiceConfirmed(false);
+  };
+
+  const handleConfirm = () => {
+    if (playerChoice) {
+      set(ref(db, `sessions/${sessionId}/crise/choices/${playerRole}`), playerChoice);
+      setChoiceConfirmed(true);
+    }
   };
 
   const calculateScore = () => {
@@ -199,9 +209,17 @@ export default function SalleCrise({ sessionId, playerRole, playerId, session, o
     });
 
     const scoreGlobal = (scoreEau + scoreEnergie + scoreBio + 30) / 60;
-    setGlobalScore(scoreGlobal);
+    set(globalScoreRef, scoreGlobal); // Synchronise le score pour tous
     return scoreGlobal;
   };
+  // Synchronisation du score global pour tous les joueurs
+  useEffect(() => {
+    const unsubGlobalScore = onValue(globalScoreRef, (snap) => {
+      const val = snap.val();
+      if (val !== null && val !== undefined) setGlobalScore(val);
+    });
+    return unsubGlobalScore;
+  }, [globalScoreRef]);
 
   const normalizeRole = (role) => {
     // Normalise le rôle pour gérer les différences d'accents
@@ -295,12 +313,30 @@ export default function SalleCrise({ sessionId, playerRole, playerId, session, o
               key={choice.id}
               onClick={() => handleChoice(choice.id)}
               className={`choice-button ${playerChoice === choice.id ? 'selected' : ''}`}
+              disabled={choiceConfirmed}
             >
               <h4>{choice.label}</h4>
               <p>{choice.desc}</p>
+              {playerChoice === choice.id && !choiceConfirmed && (
+                <span style={{color:'#00ff66',fontWeight:'bold'}}>Sélectionné</span>
+              )}
+              {playerChoice === choice.id && choiceConfirmed && (
+                <span style={{color:'#00ff66',fontWeight:'bold'}}>Choix confirmé</span>
+              )}
             </button>
           ))}
         </div>
+        <button
+          className="confirm-choice-btn"
+          style={{marginTop:20,padding:'10px 30px',fontWeight:'bold',background:'#00ff66',color:'#222',borderRadius:8,border:'none',cursor:playerChoice&&!choiceConfirmed?'pointer':'not-allowed',opacity:playerChoice&&!choiceConfirmed?1:0.5}}
+          onClick={handleConfirm}
+          disabled={!playerChoice || choiceConfirmed}
+        >
+          Confirmer mon choix
+        </button>
+        {choiceConfirmed && (
+          <div style={{marginTop:10,color:'#00ff66',fontWeight:'bold'}}>Votre choix a été enregistré !</div>
+        )}
       </div>
     );
   };
