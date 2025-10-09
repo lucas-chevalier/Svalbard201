@@ -59,6 +59,8 @@ function generatePerfectMaze(size = 8) {
 
 export default function WaitingRoom({ sessionId, playerId, onStart }) {
   const [session, setSession] = useState(null);
+  const [showVideo, setShowVideo] = useState(false);
+  const [videoEnded, setVideoEnded] = useState(false);
   const sessionRef = ref(db, `sessions/${sessionId}`);
 
   useEffect(() => {
@@ -75,7 +77,10 @@ export default function WaitingRoom({ sessionId, playerId, onStart }) {
       }
 
       // Quand la partie démarre
-      if (data?.state === "playing") {
+      if (data?.state === "video") {
+        setShowVideo(true);
+      }
+      if (data?.state === "playing" && !videoEnded) {
         // --- Création de la grille "water" si elle n'existe pas ---
         const puzzleRef = ref(db, `sessions/${sessionId}/puzzles/water`);
         onValue(
@@ -83,19 +88,18 @@ export default function WaitingRoom({ sessionId, playerId, onStart }) {
           (snap) => {
             if (!snap.exists()) {
               const generatedGrid = generatePerfectMaze(8);
-              // ✅ Utilisation de set() au lieu de update() pour éviter l'erreur Firebase
               set(puzzleRef, generatedGrid).catch(console.error);
             }
           },
           { onlyOnce: true }
         );
-
+        setShowVideo(false);
+        setVideoEnded(true);
         onStart(sessionId, playerId);
       }
     });
-
     return () => unsub();
-  }, [sessionId, playerId, onStart]);
+  }, [sessionId, playerId, onStart, videoEnded]);
 
   if (!session) return <p>Chargement du briefing...</p>;
 
@@ -124,8 +128,46 @@ export default function WaitingRoom({ sessionId, playerId, onStart }) {
       alert("Tous les joueurs doivent choisir un rôle avant de commencer !");
       return;
     }
-    await update(sessionRef, { state: "playing" });
+    await update(sessionRef, { state: "video" });
   };
+
+  // Quand la vidéo se termine, le chef lance la partie
+  const handleVideoEnd = async () => {
+    if (isHost) {
+      await update(sessionRef, { state: "playing" });
+    }
+    setShowVideo(false);
+    setVideoEnded(true);
+  };
+
+  if (showVideo) {
+    return (
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "#000",
+          zIndex: 9999,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <video
+          src="/assets/briefing.mp4"
+          autoPlay
+          controls={false}
+          onEnded={handleVideoEnd}
+          style={{
+            width: "80vw",
+            maxWidth: "900px",
+            borderRadius: "16px",
+            boxShadow: "0 0 40px #00ff66",
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="waiting-room fallout-terminal">
@@ -147,7 +189,7 @@ export default function WaitingRoom({ sessionId, playerId, onStart }) {
       <div className="role-selection">
         <h4>🎯 Choisis ton rôle :</h4>
         <div>
-          {["Aucun", ...allRoles].map((role) => {
+          {['Aucun', ...allRoles].map((role) => {
             const taken = takenRoles.includes(role);
             const isMine = playerRole === role;
             return (
@@ -174,14 +216,22 @@ export default function WaitingRoom({ sessionId, playerId, onStart }) {
       </div>
 
       {isHost ? (
-        <button onClick={startGame} className="launch-button" disabled={!allReady}
-          style={{ marginTop: 20, background: allReady ? "#00ff99" : "#555", color: allReady ? "#000" : "#aaa" }}>
+        <button
+          onClick={startGame}
+          className="launch-button"
+          disabled={!allReady}
+          style={{
+            marginTop: 20,
+            background: allReady ? "#00ff99" : "#555",
+            color: allReady ? "#000" : "#aaa",
+          }}
+        >
           🚀 Lancer la mission
         </button>
       ) : (
-        <p style={{ marginTop: 20 }}>
-          {allReady ? "✅ En attente du lancement par le chef de mission..." : "🕐 En attente que tout le monde choisisse un rôle..."}
-        </p>
+        <div style={{marginTop: 32, color: "#00ff99", fontSize: "1.2em", textAlign: "center"}}>
+          En attente du lancement par le chef de mission...
+        </div>
       )}
     </div>
   );
