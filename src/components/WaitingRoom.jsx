@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { ref, onValue, set, update } from "firebase/database";
 import { db } from "../firebase";
-import { Beaker, Zap, Droplets, ShieldAlert } from "lucide-react";
+import { Beaker, Zap, Droplets, ShieldAlert, SkipForward } from "lucide-react";
 
 const roleIcons = {
   Hydrologue: <Droplets size={18} />,
@@ -17,7 +17,7 @@ const roleColors = {
   Aucun: "#666666",
 };
 
-// --- Génération de la grille du puzzle "water" ---
+// --- Génération du puzzle "water" ---
 function generatePerfectMaze(size = 8) {
   const NBIT = 1, EBIT = 2, SBIT = 4, WBIT = 8;
   const DIRS = [
@@ -28,9 +28,13 @@ function generatePerfectMaze(size = 8) {
   ];
   const inBounds = (x, y) => x >= 0 && y >= 0 && x < size && y < size;
   const key = (x, y) => `${x},${y}`;
-
   const cells = Array.from({ length: size }, () =>
-    Array.from({ length: size }, () => ({ open: 0, base: "blank", kind: "pipe", rot: 0 }))
+    Array.from({ length: size }, () => ({
+      open: 0,
+      base: "blank",
+      kind: "pipe",
+      rot: 0,
+    }))
   );
   const visited = new Set();
   const stack = [];
@@ -42,8 +46,10 @@ function generatePerfectMaze(size = 8) {
     const cur = stack[stack.length - 1];
     const options = [];
     for (const d of DIRS) {
-      const nx = cur.x + d.dx, ny = cur.y + d.dy;
-      if (inBounds(nx, ny) && !visited.has(key(nx, ny))) options.push({ nx, ny, d });
+      const nx = cur.x + d.dx,
+        ny = cur.y + d.dy;
+      if (inBounds(nx, ny) && !visited.has(key(nx, ny)))
+        options.push({ nx, ny, d });
     }
     if (options.length) {
       const { nx, ny, d } = options[Math.floor(Math.random() * options.length)];
@@ -61,6 +67,8 @@ export default function WaitingRoom({ sessionId, playerId, onStart }) {
   const [session, setSession] = useState(null);
   const [showVideo, setShowVideo] = useState(false);
   const [videoEnded, setVideoEnded] = useState(false);
+  const [loadingVideo, setLoadingVideo] = useState(true);
+
   const sessionRef = ref(db, `sessions/${sessionId}`);
 
   useEffect(() => {
@@ -70,25 +78,23 @@ export default function WaitingRoom({ sessionId, playerId, onStart }) {
 
       setSession(data);
 
-      // Si le joueur n'a pas de rôle, lui assigner "Aucun"
       if (data.players && data.players[playerId] && !data.players[playerId].role) {
         const playerRef = ref(db, `sessions/${sessionId}/players/${playerId}`);
         update(playerRef, { role: "Aucun", color: roleColors["Aucun"] });
       }
 
-      // Quand la partie démarre
-      if (data?.state === "video") {
-        setShowVideo(true);
-      }
+      // --- Lancement vidéo briefing ---
+      if (data?.state === "video") setShowVideo(true);
+
+      // --- Passage au jeu après vidéo ---
       if (data?.state === "playing" && !videoEnded) {
-        // --- Création de la grille "water" si elle n'existe pas ---
         const puzzleRef = ref(db, `sessions/${sessionId}/puzzles/water`);
         onValue(
           puzzleRef,
           (snap) => {
             if (!snap.exists()) {
-              const generatedGrid = generatePerfectMaze(8);
-              set(puzzleRef, generatedGrid).catch(console.error);
+              const grid = generatePerfectMaze(8);
+              set(puzzleRef, grid).catch(console.error);
             }
           },
           { onlyOnce: true }
@@ -120,8 +126,9 @@ export default function WaitingRoom({ sessionId, playerId, onStart }) {
   };
 
   const allReady =
-    Object.values(session.players || {}).every((p) => p.role && p.role !== "Aucun") &&
-    Object.keys(session.players || {}).length >= 2;
+    Object.values(session.players || {}).every(
+      (p) => p.role && p.role !== "Aucun"
+    ) && Object.keys(session.players || {}).length >= 2;
 
   const startGame = async () => {
     if (!allReady) {
@@ -131,15 +138,19 @@ export default function WaitingRoom({ sessionId, playerId, onStart }) {
     await update(sessionRef, { state: "video" });
   };
 
-  // Quand la vidéo se termine, le chef lance la partie
   const handleVideoEnd = async () => {
-    if (isHost) {
-      await update(sessionRef, { state: "playing" });
-    }
+    if (isHost) await update(sessionRef, { state: "playing" });
     setShowVideo(false);
     setVideoEnded(true);
   };
 
+  const skipVideo = async () => {
+    if (isHost) await update(sessionRef, { state: "playing" });
+    setShowVideo(false);
+    setVideoEnded(true);
+  };
+
+  // --- Écran de vidéo de briefing ---
   if (showVideo) {
     return (
       <div
@@ -151,24 +162,54 @@ export default function WaitingRoom({ sessionId, playerId, onStart }) {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          flexDirection: "column",
         }}
       >
         <video
           src="/assets/briefing.mp4"
           autoPlay
-          controls={false}
+          playsInline
+          muted={false}
+          onCanPlayThrough={() => setLoadingVideo(false)}
           onEnded={handleVideoEnd}
-          style={{
-            width: "80vw",
-            maxWidth: "900px",
-            borderRadius: "16px",
-            boxShadow: "0 0 40px #00ff66",
-          }}
+          style={{ width: "80%", height: "80%", objectFit: "cover" }}
         />
+        {loadingVideo && (
+          <p
+            style={{
+              color: "#00ff99",
+              marginTop: 12,
+              fontFamily: "monospace",
+              fontSize: "1.2em",
+            }}
+          >
+            Chargement de la séquence de briefing...
+          </p>
+        )}
+
+        <button
+          onClick={skipVideo}
+          style={{
+            marginTop: 20,
+            background: "#00ff99",
+            color: "#000",
+            border: "none",
+            borderRadius: 8,
+            padding: "10px 18px",
+            fontWeight: "bold",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+          }}
+        >
+          Passer la vidéo <SkipForward size={18} />
+        </button>
       </div>
     );
   }
 
+  // --- Interface d’attente ---
   return (
     <div className="waiting-room fallout-terminal">
       <div className="vault-title">📡 Salle de Briefing</div>
@@ -177,11 +218,18 @@ export default function WaitingRoom({ sessionId, playerId, onStart }) {
       <h3>👥 Opérateurs connectés :</h3>
       <ul className="players-list">
         {Object.values(session.players || {}).map((p, i) => (
-          <li key={i} style={{ borderColor: p.color || "#00ff66", opacity: p.id === playerId ? 1 : 0.9 }}>
-            <span style={{ color: p.color || "#00ff66" }}>{p.role ? <>{p.role}</> : <ShieldAlert size={16} />}</span>
+          <li
+            key={i}
+            style={{
+              borderColor: p.color || "#00ff66",
+              opacity: p.id === playerId ? 1 : 0.9,
+            }}
+          >
+            <span style={{ color: p.color || "#00ff66" }}>
+              {p.role ? p.role : "Aucun"}
+            </span>
             <span style={{ marginLeft: 6 }}>{p.name}</span>
-            <span style={{ marginLeft: 6, fontWeight: p.role === "Aucun" ? "normal" : "bold" }}></span>
-            {String(session.host) === String(p.id) && <span>★ Chef</span>}
+            {String(session.host) === String(p.id) && <span> ★ Chef</span>}
           </li>
         ))}
       </ul>
@@ -189,7 +237,7 @@ export default function WaitingRoom({ sessionId, playerId, onStart }) {
       <div className="role-selection">
         <h4>🎯 Choisis ton rôle :</h4>
         <div>
-          {['Aucun', ...allRoles].map((role) => {
+          {["Aucun", ...allRoles].map((role) => {
             const taken = takenRoles.includes(role);
             const isMine = playerRole === role;
             return (
@@ -229,7 +277,14 @@ export default function WaitingRoom({ sessionId, playerId, onStart }) {
           🚀 Lancer la mission
         </button>
       ) : (
-        <div style={{marginTop: 32, color: "#00ff99", fontSize: "1.2em", textAlign: "center"}}>
+        <div
+          style={{
+            marginTop: 32,
+            color: "#00ff99",
+            fontSize: "1.2em",
+            textAlign: "center",
+          }}
+        >
           En attente du lancement par le chef de mission...
         </div>
       )}

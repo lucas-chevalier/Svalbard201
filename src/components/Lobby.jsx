@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { db } from "../firebase";
 import { ref, set, update, get } from "firebase/database";
 import { v4 as uuidv4 } from "uuid";
@@ -10,7 +10,7 @@ const roles = [
   { name: "Biologiste", icon: <Beaker size={20} />, color: "#00ff66" },
 ];
 
-// Génération de la grille water
+// --- Génération du labyrinthe pour la pompe
 function generatePerfectMaze(size = 8) {
   const NBIT = 1, EBIT = 2, SBIT = 4, WBIT = 8;
   const DIRS = [
@@ -50,11 +50,21 @@ export default function Lobby({ onJoin }) {
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
 
+  // --- États pour la vidéo d’intro
+  const [showVideo, setShowVideo] = useState(true);
+  const [loadingVideo, setLoadingVideo] = useState(true);
+
+  // --- Préchargement de la vidéo pour démarrage plus rapide
+  useEffect(() => {
+    const video = document.createElement("video");
+    video.src = "/assets/intro.mp4";
+    video.preload = "auto";
+  }, []);
+
   const createGame = async () => {
     if (!name.trim()) return alert("Entre ton pseudo !");
     const sid = "GV" + Math.floor(1000 + Math.random() * 9000);
     const playerId = uuidv4();
-
     const waterGrid = generatePerfectMaze(8);
 
     await set(ref(db, `sessions/${sid}`), {
@@ -75,14 +85,14 @@ export default function Lobby({ onJoin }) {
           rotations: waterGrid.map(row => row.map(() => Math.floor(Math.random() * 4))) 
         } 
       },
-  miniGameStatus: { 
-  "Pompe hydraulique": false,
-    "Débarras": false,
-    "Système de survie": false,
-    "Biosphère": false,
-    "Salle radio": false,
-    "Centrale électrique": false
-  },
+      miniGameStatus: { 
+        "Pompe hydraulique": false,
+        "Débarras": false,
+        "Système de survie": false,
+        "Biosphère": false,
+        "Salle radio": false,
+        "Centrale électrique": false
+      },
       timer: null
     });
 
@@ -106,6 +116,71 @@ export default function Lobby({ onJoin }) {
     onJoin && onJoin(code, playerId);
   };
 
+  // --- Si la vidéo d’intro est en cours
+  if (showVideo) {
+    return (
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          backgroundColor: "#000",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 9999,
+        }}
+      >
+        <video
+          src="/assets/intro.mp4"
+          autoPlay
+          playsInline
+          muted={false}
+          preload="auto"
+          onCanPlayThrough={() => setLoadingVideo(false)}
+          onEnded={() => setShowVideo(false)}
+          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+        />
+
+        {loadingVideo && (
+          <div
+            style={{
+              position: "absolute",
+              top: 0, left: 0, right: 0, bottom: 0,
+              background: "#000",
+              color: "#00ff66",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "1.3em",
+            }}
+          >
+            Chargement de la séquence d’introduction...
+          </div>
+        )}
+                        {/* Option : bouton "Passer l'intro" */}
+        <button
+          onClick={() => setShowVideo(false)}
+          style={{
+            position: "absolute",
+            bottom: "40px",
+            right: "60px",
+            background: "#00ff66",
+            border: "none",
+            color: "#000",
+            padding: "10px 20px",
+            borderRadius: "8px",
+            fontWeight: "bold",
+            cursor: "pointer",
+            boxShadow: "0 0 10px #00ff66",
+          }}
+        >
+          Passer l’intro ⏩
+        </button>
+      </div>
+    );
+  }
+
+  // --- Sinon, on affiche le lobby normal
   return (
     <div className="lobby fallout-terminal">
       <div className="vault-title">🧬 Svalbard201</div>
