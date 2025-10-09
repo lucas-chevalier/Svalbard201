@@ -48,6 +48,7 @@ export default function PuzzlePompe({ sessionId, playerRole, onWin, players, pla
   const [leakZone, setLeakZone] = useState("p3");
   const [crashed, setCrashed] = useState(false);
   const [solved, setSolved] = useState(false);
+  const [showVictoryLocal, setShowVictoryLocal] = useState(false);
 
   // Retourne une couleur du rouge->vert selon la valeur de la pompe
   const getPumpColor = (p) => {
@@ -108,6 +109,7 @@ export default function PuzzlePompe({ sessionId, playerRole, onWin, players, pla
         setLeakZone(v.leak_zone || "p3");
         setCrashed(!!v.crashed);
         setSolved(!!v.solved);
+        if (v.solved) setShowVictoryLocal(true);
         setState(v);
       }
     });
@@ -370,6 +372,18 @@ export default function PuzzlePompe({ sessionId, playerRole, onWin, players, pla
 
   return (
     <div style={{position:'relative'}}>
+      {/* Victory popup - visible to all when solved flag is set in Firebase */}
+      {showVictoryLocal && (
+        <div className="victory-overlay" role="dialog" aria-modal="true">
+          <div className="victory-card">
+            <h2>🎉 Succès !</h2>
+            <p>La fuite a été isolée et la pression est rétablie.</p>
+            <div style={{display:'flex', gap:8, marginTop:12}}>
+              <button onClick={() => setShowVictoryLocal(false)} className="puzzle-action-btn">Fermer</button>
+            </div>
+          </div>
+        </div>
+      )}
       <h3>🚰 Module Pompe — Contrôle</h3>
       <div style={{display:'flex', gap:16}}>
         <div style={{minWidth:260}}>
