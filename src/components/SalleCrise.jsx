@@ -262,59 +262,173 @@ export default function SalleCrise({ sessionId, playerRole, playerId, session, o
 
   const renderDiagnostic = () => {
     const normalizedRole = normalizeRole(playerRole);
-    console.log("Switch case avec role normalisé:", normalizedRole);  // Debug
+    
+    // Fonction pour obtenir le statut d'un indicateur (logique uniforme)
+    const getIndicatorStatus = (value) => {
+      if (value < 40) return { color: '#f44336', status: 'ALERTE', icon: '🚨' };
+      if (value < 70) return { color: '#ff9800', status: 'ATTENTION', icon: '⚠️' };
+      return { color: '#4caf50', status: 'NORMAL', icon: '✓' };
+    };
+
     switch(normalizedRole) {
       case 'Hydrologue':
+        const eauNiveau = getIndicatorStatus(indicators.eau.niveau);
+        const eauPollution = getIndicatorStatus(indicators.eau.pollution);
+        const eauEvaporation = getIndicatorStatus(indicators.eau.evaporation);
+        
         return (
-          <div className="diagnostic-panel">
-            <h3>Diagnostic Hydraulique</h3>
-            <div className="indicator">
-              <label>Niveau d'eau</label>
+          <div className="diagnostic-panel" style={{ padding: '20px', background: 'rgba(0,100,150,0.1)', borderRadius: '8px' }}>
+            <h3 style={{ color: '#00eaff', marginBottom: '20px' }}>💧 DIAGNOSTIC SYSTÈME HYDRAULIQUE</h3>
+            
+            <div style={{ marginBottom: '20px', padding: '12px', background: 'rgba(0,234,255,0.1)', borderRadius: '6px' }}>
+              <strong style={{ color: '#00eaff' }}>SITUATION :</strong> Analyse des réserves et de la qualité de l'eau de la station
+            </div>
+            
+            <div className="indicator" style={{ marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <label style={{ fontWeight: 'bold' }}>Niveau des réservoirs</label>
+                <span style={{ color: eauNiveau.color, fontWeight: 'bold' }}>
+                  {eauNiveau.icon} {eauNiveau.status}
+                </span>
+              </div>
               <ProgressBar value={indicators.eau.niveau} />
+              <div style={{ fontSize: '12px', color: '#aaa', marginTop: '4px' }}>
+                Capacité actuelle: {indicators.eau.niveau}% | Alerte: &lt;40% | Surveillance: 40-70% | OK: &gt;70%
+              </div>
             </div>
-            <div className="indicator">
-              <label>Pollution</label>
+            
+            <div className="indicator" style={{ marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <label style={{ fontWeight: 'bold' }}>Taux de pollution</label>
+                <span style={{ color: eauPollution.color, fontWeight: 'bold' }}>
+                  {eauPollution.icon} {eauPollution.status}
+                </span>
+              </div>
               <ProgressBar value={indicators.eau.pollution} />
+              <div style={{ fontSize: '12px', color: '#aaa', marginTop: '4px' }}>
+                Contamination: {indicators.eau.pollution}% | Alerte: &lt;40% | Surveillance: 40-70% | OK: &gt;70%
+              </div>
             </div>
-            <div className="indicator">
-              <label>Évaporation</label>
+            
+            <div className="indicator" style={{ marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <label style={{ fontWeight: 'bold' }}>Taux d'évaporation</label>
+                <span style={{ color: eauEvaporation.color, fontWeight: 'bold' }}>
+                  {eauEvaporation.icon} {eauEvaporation.status}
+                </span>
+              </div>
               <ProgressBar value={indicators.eau.evaporation} />
+              <div style={{ fontSize: '12px', color: '#aaa', marginTop: '4px' }}>
+                Perte thermique: {indicators.eau.evaporation}% | Alerte: &lt;40% | Surveillance: 40-70% | OK: &gt;70%
+              </div>
             </div>
           </div>
         );
+        
       case 'Énergéticien':
+        const energieProduction = getIndicatorStatus(indicators.energie.production);
+        const energieConsommation = getIndicatorStatus(indicators.energie.consommation);
+        const energieRendement = getIndicatorStatus(indicators.energie.rendement);
+        
         return (
-          <div className="diagnostic-panel">
-            <h3>Diagnostic Énergétique</h3>
-            <div className="indicator">
-              <label>Production</label>
+          <div className="diagnostic-panel" style={{ padding: '20px', background: 'rgba(150,150,0,0.1)', borderRadius: '8px' }}>
+            <h3 style={{ color: '#ffee00', marginBottom: '20px' }}>⚡ DIAGNOSTIC SYSTÈME ÉNERGÉTIQUE</h3>
+            
+            <div style={{ marginBottom: '20px', padding: '12px', background: 'rgba(255,238,0,0.1)', borderRadius: '6px' }}>
+              <strong style={{ color: '#ffee00' }}>SITUATION :</strong> Surveillance de la production et distribution électrique
+            </div>
+            
+            <div className="indicator" style={{ marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <label style={{ fontWeight: 'bold' }}>Production électrique</label>
+                <span style={{ color: energieProduction.color, fontWeight: 'bold' }}>
+                  {energieProduction.icon} {energieProduction.status}
+                </span>
+              </div>
               <ProgressBar value={indicators.energie.production} />
+              <div style={{ fontSize: '12px', color: '#aaa', marginTop: '4px' }}>
+                Sortie générateurs: {indicators.energie.production}% | Alerte: &lt;40% | Surveillance: 40-70% | OK: &gt;70%
+              </div>
             </div>
-            <div className="indicator">
-              <label>Consommation</label>
+            
+            <div className="indicator" style={{ marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <label style={{ fontWeight: 'bold' }}>Consommation globale</label>
+                <span style={{ color: energieConsommation.color, fontWeight: 'bold' }}>
+                  {energieConsommation.icon} {energieConsommation.status}
+                </span>
+              </div>
               <ProgressBar value={indicators.energie.consommation} />
+              <div style={{ fontSize: '12px', color: '#aaa', marginTop: '4px' }}>
+                Charge système: {indicators.energie.consommation}% | Alerte: &lt;40% | Surveillance: 40-70% | OK: &gt;70%
+              </div>
             </div>
-            <div className="indicator">
-              <label>Rendement</label>
+            
+            <div className="indicator" style={{ marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <label style={{ fontWeight: 'bold' }}>Rendement réseau</label>
+                <span style={{ color: energieRendement.color, fontWeight: 'bold' }}>
+                  {energieRendement.icon} {energieRendement.status}
+                </span>
+              </div>
               <ProgressBar value={indicators.energie.rendement} />
+              <div style={{ fontSize: '12px', color: '#aaa', marginTop: '4px' }}>
+                Efficacité distribution: {indicators.energie.rendement}% | Alerte: &lt;40% | Surveillance: 40-70% | OK: &gt;70%
+              </div>
             </div>
           </div>
         );
+        
       case 'Biologiste':
+        const bioCroissance = getIndicatorStatus(indicators.bio.croissance);
+        const bioOxygene = getIndicatorStatus(indicators.bio.oxygene);
+        const bioToxines = getIndicatorStatus(indicators.bio.toxines);
+        
         return (
-          <div className="diagnostic-panel">
-            <h3>Diagnostic Biosphère</h3>
-            <div className="indicator">
-              <label>Croissance</label>
+          <div className="diagnostic-panel" style={{ padding: '20px', background: 'rgba(0,150,50,0.1)', borderRadius: '8px' }}>
+            <h3 style={{ color: '#00ff66', marginBottom: '20px' }}>🌱 DIAGNOSTIC ÉCOSYSTÈME BIOLOGIQUE</h3>
+            
+            <div style={{ marginBottom: '20px', padding: '12px', background: 'rgba(0,255,102,0.1)', borderRadius: '6px' }}>
+              <strong style={{ color: '#00ff66' }}>SITUATION :</strong> Monitoring de la biosphère et de la qualité de l'air
+            </div>
+            
+            <div className="indicator" style={{ marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <label style={{ fontWeight: 'bold' }}>Croissance végétale</label>
+                <span style={{ color: bioCroissance.color, fontWeight: 'bold' }}>
+                  {bioCroissance.icon} {bioCroissance.status}
+                </span>
+              </div>
               <ProgressBar value={indicators.bio.croissance} />
+              <div style={{ fontSize: '12px', color: '#aaa', marginTop: '4px' }}>
+                Taux développement: {indicators.bio.croissance}% | Alerte: &lt;40% | Surveillance: 40-70% | OK: &gt;70%
+              </div>
             </div>
-            <div className="indicator">
-              <label>Oxygène</label>
+            
+            <div className="indicator" style={{ marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <label style={{ fontWeight: 'bold' }}>Niveau d'oxygène</label>
+                <span style={{ color: bioOxygene.color, fontWeight: 'bold' }}>
+                  {bioOxygene.icon} {bioOxygene.status}
+                </span>
+              </div>
               <ProgressBar value={indicators.bio.oxygene} />
+              <div style={{ fontSize: '12px', color: '#aaa', marginTop: '4px' }}>
+                Concentration O₂: {indicators.bio.oxygene}% | Alerte: &lt;40% | Surveillance: 40-70% | OK: &gt;70%
+              </div>
             </div>
-            <div className="indicator">
-              <label>Toxines</label>
+            
+            <div className="indicator" style={{ marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <label style={{ fontWeight: 'bold' }}>Pureté atmosphérique</label>
+                <span style={{ color: bioToxines.color, fontWeight: 'bold' }}>
+                  {bioToxines.icon} {bioToxines.status}
+                </span>
+              </div>
               <ProgressBar value={indicators.bio.toxines} />
+              <div style={{ fontSize: '12px', color: '#aaa', marginTop: '4px' }}>
+                Pureté atmosphérique: {indicators.bio.toxines}% | Alerte: &lt;40% | Surveillance: 40-70% | OK: &gt;70%
+              </div>
             </div>
           </div>
         );
