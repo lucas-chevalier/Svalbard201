@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { ref, onValue, update, set } from "firebase/database";
 import { db } from "../firebase";
 import Chat from "./Chat";
@@ -58,15 +58,18 @@ export default function GameRoom({ sessionId, playerId }) {
   const [miniGameStatus, setMiniGameStatus] = useState({});
   const [roomsOrder, setRoomsOrder] = useState([]);
   const [forceAccessAll, setForceAccessAll] = useState(false);
-  const [globalScore, setGlobalScore] = useState(null); // 🔹 Nouveau
+  const [globalScore, setGlobalScore] = useState(null);
+  const [showEndVideo, setShowEndVideo] = useState(false);
+  const [loadingVideo, setLoadingVideo] = useState(true);
+  const [showFinalPage, setShowFinalPage] = useState(false);
 
-  const sessionRef = ref(db, `sessions/${sessionId}`);
-  const miniGameRef = ref(db, `sessions/${sessionId}/miniGameStatus`);
-  const orderRef = ref(db, `sessions/${sessionId}/roomsOrder`);
-  const timerRef = ref(db, `sessions/${sessionId}/timer`);
-  const globalScoreRef = ref(db, `sessions/${sessionId}/crise/globalScore`); // 🔹 Référence du score
+const sessionRef = useMemo(() => ref(db, `sessions/${sessionId}`), [sessionId]);
+const miniGameRef = useMemo(() => ref(db, `sessions/${sessionId}/miniGameStatus`), [sessionId]);
+const orderRef = useMemo(() => ref(db, `sessions/${sessionId}/roomsOrder`), [sessionId]);
+const globalScoreRef = useMemo(() => ref(db, `sessions/${sessionId}/crise/globalScore`), [sessionId]);
+const endVideoRef = useMemo(() => ref(db, `sessions/${sessionId}/endVideo`), [sessionId]);
 
-  // --- Chargement des données session / rooms
+
   useEffect(() => {
     const unsubSession = onValue(sessionRef, (snap) => setSession(snap.val()));
     const unsubMini = onValue(miniGameRef, (snap) => {
@@ -77,11 +80,16 @@ export default function GameRoom({ sessionId, playerId }) {
       const val = snap.val();
       if (val) setRoomsOrder(val);
     });
-
-    // 🔹 Écoute du score global
     const unsubScore = onValue(globalScoreRef, (snap) => {
       const val = snap.val();
       if (val !== null && val !== undefined) setGlobalScore(val);
+    });
+    const unsubEndVideo = onValue(endVideoRef, (snap) => {
+      const val = snap.val();
+      if (val?.finished) {
+        setShowEndVideo(false);
+        setShowFinalPage(true);
+      }
     });
 
     return () => {
@@ -89,10 +97,10 @@ export default function GameRoom({ sessionId, playerId }) {
       unsubMini();
       unsubOrder();
       unsubScore();
+      unsubEndVideo();
     };
-  }, [sessionRef, miniGameRef, orderRef, globalScoreRef]);
+  }, [sessionRef, miniGameRef, orderRef, globalScoreRef, endVideoRef]);
 
-  // --- Définir l'ordre initial (par le host)
   useEffect(() => {
     if (!session?.host || roomsOrder.length > 0 || playerId !== session.host) return;
 
@@ -108,10 +116,31 @@ export default function GameRoom({ sessionId, playerId }) {
     set(orderRef, defaultOrder).then(() => setRoomsOrder(defaultOrder));
 
     const timerSnap = ref(db, `sessions/${sessionId}/timer`);
-    onValue(timerSnap, (snap) => {
-      if (!snap.exists()) set(timerRef, Date.now() + 30 * 60 * 1000);
-    }, { onlyOnce: true });
+    onValue(
+      timerSnap,
+      (snap) => {
+        if (!snap.exists()) set(ref(db, `sessions/${sessionId}/timer`), Date.now() + 40 * 60 * 1000);
+      },
+      { onlyOnce: true }
+    );
   }, [session?.host, roomsOrder.length, playerId]);
+
+const [hasPlayedEndVideo, setHasPlayedEndVideo] = useState(false);
+
+useEffect(() => {
+  if (
+    !hasPlayedEndVideo &&
+    !showEndVideo &&
+    !showFinalPage && // ✅ empêche de rejouer la vidéo une fois la page finale affichée
+    roomsOrder.length > 0 &&
+    Object.keys(miniGameStatus).length === roomsOrder.length &&
+    Object.values(miniGameStatus).every(Boolean)
+  ) {
+    setShowEndVideo(true);
+    setHasPlayedEndVideo(true);
+  }
+}, [miniGameStatus, roomsOrder, hasPlayedEndVideo, showEndVideo, showFinalPage]);
+ 
 
   if (!session) return <p>Chargement...</p>;
 
@@ -134,42 +163,92 @@ export default function GameRoom({ sessionId, playerId }) {
   const handleLeaveRoom = () => setCurrentRoom("controlRoom");
   const handleAccessAllRooms = () => setForceAccessAll(true);
 
-  const allCompleted = roomsOrder.length > 0 &&
-    Object.keys(miniGameStatus).length === roomsOrder.length &&
-    Object.values(miniGameStatus).every(Boolean);
+  const isHost = session.host === playerId;
 
-  // --- Fin du jeu
-  if (allCompleted) {
+  // --- Vidéo finale après les 6 modules
+  if (showEndVideo) {
     return (
-      <div style={{
-        minHeight: "100vh",
-        background: "#000",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        flexDirection: "column",
-      }}>
-        <img
-          src="/assets/fin.png"
-          alt="Fin de partie"
-          style={{
-            maxWidth: "700px",
-            width: "90vw",
-            borderRadius: "18px",
-            boxShadow: "0 0 40px #00ff66",
-            marginBottom: "2rem",
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "#000",
+          zIndex: 9999,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexDirection: "column",
+        }}
+      >
+        <video
+          src="/assets/fin.mp4"
+          autoPlay
+          playsInline
+          muted={false}
+          onCanPlayThrough={() => setLoadingVideo(false)}
+          onEnded={() => {
+            setShowEndVideo(false);
+            setShowFinalPage(true);
           }}
+          style={{ width: "80%", height: "60%", objectFit: "contain" }}
         />
-        <h1 style={{ color: "#00ff66", textShadow: "0 0 10px #00ff66" }}>
-          Félicitations, toutes les épreuves sont terminées !
-        </h1>
-        <p style={{ color: "#fff", fontSize: "1.2em", marginTop: "1em" }}>
-          La mission Svalbard201 est un succès.
+        {loadingVideo && (
+          <p style={{ color: "#00ff66", marginTop: 12, fontFamily: "monospace", fontSize: "1.2em" }}>
+            Chargement de la vidéo de fin...
+          </p>
+        )}
+        {isHost && (
+          <button
+            onClick={() => {
+              update(endVideoRef, { finished: true });
+              setShowEndVideo(false);
+              setShowFinalPage(true);
+            }}
+            style={{
+              marginTop: 20,
+              background: "#00ff66",
+              color: "#000",
+              border: "none",
+              borderRadius: 8,
+              padding: "10px 18px",
+              fontWeight: "bold",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            Passer la vidéo
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  // --- Page finale affichant le score de la salle de crise
+  if (showFinalPage) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          background: "#000",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexDirection: "column",
+          color: "#00ff66",
+        }}
+      >
+        <h1 style={{ fontSize: "2.5em", marginBottom: "1rem" }}>Mission terminée !</h1>
+        <p style={{ fontSize: "1.5em", marginBottom: "1rem" }}>Score final de la salle de crise :</p>
+        <p style={{ fontSize: "3em", fontWeight: "bold", color: "#ffcc00" }}>
+          {globalScore !== null ? `${(globalScore * 100).toFixed(1)}%` : "Calcul en cours..."}
         </p>
       </div>
     );
   }
 
+  // --- Salle de contrôle et autres salles
   return (
     <>
       {currentRoom === "controlRoom" ? (
@@ -181,7 +260,7 @@ export default function GameRoom({ sessionId, playerId }) {
             miniGameStatus={miniGameStatus}
             currentRoom={currentRoom}
           />
-          {/* --- Affichage de la progression --- */}
+
           <div className="progress-section">
             <div className="progress-text">
               Progression : {Object.keys(miniGameStatus).filter((r) => miniGameStatus[r]).length} / {roomsOrder.length}
@@ -198,7 +277,6 @@ export default function GameRoom({ sessionId, playerId }) {
             </div>
           </div>
 
-          {/* --- Carte des salles --- */}
           <div
             className="map-grid"
             style={{
@@ -248,24 +326,23 @@ export default function GameRoom({ sessionId, playerId }) {
         <Room key={currentRoom} title={currentRoom} bg={currentRoomInfo?.bg}>
           <div style={{ marginRight: "360px" }}>
             <Timer endTime={session.timer} />
-
-            {/* 🔹 Affichage du score global si on est dans la salle de crise */}
             {currentRoom === "Salle de crise" && globalScore !== null && (
-              <div style={{
-                background: "#000a",
-                border: "2px solid #00ff66",
-                borderRadius: "12px",
-                padding: "12px 20px",
-                color: "#00ff66",
-                fontWeight: "bold",
-                textAlign: "center",
-                marginBottom: "20px",
-                maxWidth: "400px",
-              }}>
+              <div
+                style={{
+                  background: "#000a",
+                  border: "2px solid #00ff66",
+                  borderRadius: "12px",
+                  padding: "12px 20px",
+                  color: "#00ff66",
+                  fontWeight: "bold",
+                  textAlign: "center",
+                  marginBottom: "20px",
+                  maxWidth: "400px",
+                }}
+              >
                 Score global actuel : {(globalScore * 100).toFixed(1)}%
               </div>
             )}
-
             {MiniGame && (
               <MiniGame
                 sessionId={sessionId}
