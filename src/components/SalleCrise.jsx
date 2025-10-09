@@ -157,23 +157,24 @@ export default function SalleCrise({ sessionId, playerRole, playerId, session, o
 
   const choices = {
     Hydrologue: [
-      { id: 'purifier_eau', label: 'Purifier l’eau', desc: '“Tu lances la purification complète de l’eau : elle sera plus propre, mais la station consommera beaucoup d’électricité.”' },
-      { id: 'distribuer_rapide', label: 'Distribuer plus vite', desc: '“Tu accélères la distribution de l’eau : les systèmes sont plus performants, mais certaines zones risquent d’être trop arrosées ou polluées.”' },
-      { id: 'fermer_circuits', label: 'Fermer certains circuits', desc: '“Tu coupes les canalisations secondaires : c’est plus sûr, mais l’eau n’atteindra pas toutes les zones.”' }
+      { id: 'purifier_eau', label: 'Purifier l\'eau', desc: '"Tu lances la purification complète de l\'eau : elle sera plus propre, mais la station consommera beaucoup d\'électricité."' },
+      { id: 'distribuer_rapide', label: 'Distribuer plus vite', desc: '"Tu accélères la distribution de l\'eau : les systèmes sont plus performants, mais certaines zones risquent d\'être trop arrosées ou polluées."' },
+      { id: 'fermer_circuits', label: 'Fermer certains circuits', desc: '"Tu coupes les canalisations secondaires : c\'est plus sûr, mais l\'eau n\'atteindra pas toutes les zones."' },
+      { id: 'vider_reserves', label: 'BOOST HYDRIQUE MAXIMAL', desc: '"Tu libères TOUTES les réserves d\'eau d\'un coup pour une irrigation massive ! Performance garantie à 200% ! Que peut-il mal se passer ?"' }
     ],
     'Énergéticien': [
-      { id: 'stabiliser_reseau', label: 'Stabiliser le réseau', desc: '“Tu rends le réseau plus stable : moins de pannes, mais un peu moins d’électricité produite.”' },
-      { id: 'maximiser_rendement', label: 'Pousser les générateurs', desc: '“Tu augmentes la puissance : plus d’électricité, mais ça chauffe et pollue davantage.”' },
-      { id: 'rediriger_vers_biosphere', label: 'Donner du courant à la biosphère', desc: '“Tu rediriges de l’énergie vers les serres : les plantes seront mieux, mais la centrale tournera moins fort.”' }
+      { id: 'stabiliser_reseau', label: 'Stabiliser le réseau', desc: '"Tu rends le réseau plus stable : moins de pannes, mais un peu moins d\'électricité produite."' },
+      { id: 'maximiser_rendement', label: 'Pousser les générateurs', desc: '"Tu augmentes la puissance : plus d\'électricité, mais ça chauffe et pollue davantage."' },
+      { id: 'rediriger_vers_biosphere', label: 'Donner du courant à la biosphère', desc: '"Tu rediriges de l\'énergie vers les serres : les plantes seront mieux, mais la centrale tournera moins fort."' },
+      { id: 'surcharge_totale', label: 'MODE TURBO ULTIME', desc: '"Tu pousses les réacteurs à 150% de leur capacité ! Énergie illimitée pendant des heures ! Les ingénieurs adorent cette astuce !"' }
     ],
     Biologiste: [
-      { id: 'renforcer_biodiversite', label: 'Planter plus d’espèces', desc: '“Tu diversifies les plantes : le système sera plus solide, mais les récoltes pousseront moins vite.”' },
-      { id: 'croissance_rapide', label: 'Faire pousser plus vite', desc: '“Tu stimules la croissance : plus de nourriture, mais ça vide les réserves d’eau et d’énergie.”' },
-      { id: 'filtrer_toxines', label: 'Activer les filtres naturels', desc: '“Tu actives des plantes purificatrices : l’air et l’eau seront plus sains, mais la croissance ralentira un peu.”' }
+      { id: 'renforcer_biodiversite', label: 'Planter plus d\'espèces', desc: '"Tu diversifies les plantes : le système sera plus solide, mais les récoltes pousseront moins vite."' },
+      { id: 'croissance_rapide', label: 'Faire pousser plus vite', desc: '"Tu stimules la croissance : plus de nourriture, mais ça vide les réserves d\'eau et d\'énergie."' },
+      { id: 'filtrer_toxines', label: 'Activer les filtres naturels', desc: '"Tu actives des plantes purificatrices : l\'air et l\'eau seront plus sains, mais la croissance ralentira un peu."' },
+      { id: 'fertilisant_experimental', label: 'SÉRUM CROISSANCE X-42', desc: '"Tu utilises le fertilisant expérimental ultra-secret ! Croissance x10 en quelques heures ! Testé par les meilleurs scientifiques* (*sur des cobayes)"' }
     ]
-  };
-
-  const handleChoice = (choice) => {
+  };  const handleChoice = (choice) => {
     setPlayerChoice(choice);
     setChoiceConfirmed(false);
   };
@@ -206,6 +207,11 @@ export default function SalleCrise({ sessionId, playerRole, playerId, session, o
           scoreEau += 5;
           scoreEnergie -= 5;
           break;
+        case 'vider_reserves': // OPTION PIÈGE !
+          scoreEau -= 20; // Catastrophe hydrique
+          scoreEnergie -= 15; // Plus d'énergie pour pomper
+          scoreBio -= 10; // Inondation des cultures
+          break;
 
         // Energéticien
         case 'stabiliser_reseau':
@@ -219,6 +225,11 @@ export default function SalleCrise({ sessionId, playerRole, playerId, session, o
         case 'rediriger_vers_biosphere':
           scoreEnergie -= 5;
           scoreBio += 10;
+          break;
+        case 'surcharge_totale': // OPTION PIÈGE !
+          scoreEnergie -= 25; // Fusion des réacteurs
+          scoreEau -= 15; // Système de refroidissement grillé
+          scoreBio -= 20; // Pollution radioactive
           break;
 
         // Biologiste
@@ -235,6 +246,11 @@ export default function SalleCrise({ sessionId, playerRole, playerId, session, o
           scoreBio += 5;
           scoreEau += 5;
           scoreEnergie -= 3;
+          break;
+        case 'fertilisant_experimental': // OPTION PIÈGE !
+          scoreBio -= 30; // Mutation des plantes
+          scoreEau -= 10; // Contamination de l'eau
+          scoreEnergie -= 5; // Confinement d'urgence
           break;
       }
     });
@@ -452,21 +468,40 @@ export default function SalleCrise({ sessionId, playerRole, playerId, session, o
     return (
       <div className="decision-panel">
         <h3>Prenez votre décision</h3>
-        <div className="choices-grid">
+        <div className="choices-grid" style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
+          gap: '12px', 
+          maxWidth: '900px',
+          margin: '0 auto'
+        }}>
           {roleChoices.map((choice) => (
             <button
               key={choice.id}
               onClick={() => handleChoice(choice.id)}
               className={`choice-button ${playerChoice === choice.id ? 'selected' : ''}`}
               disabled={choiceConfirmed}
+              style={{
+                padding: '12px 16px',
+                borderRadius: '8px',
+                border: '2px solid #444',
+                background: playerChoice === choice.id ? 'rgba(0,255,102,0.2)' : 'rgba(0,0,0,0.3)',
+                color: '#fff',
+                textAlign: 'left',
+                cursor: choiceConfirmed ? 'not-allowed' : 'pointer',
+                transition: 'all 0.3s ease',
+                minHeight: '100px',
+                maxHeight: '140px',
+                overflow: 'hidden'
+              }}
             >
-              <h4>{choice.label}</h4>
-              <p>{choice.desc}</p>
+              <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: 'bold' }}>{choice.label}</h4>
+              <p style={{ margin: '0 0 8px 0', fontSize: '12px', lineHeight: '1.3', opacity: '0.9' }}>{choice.desc}</p>
               {playerChoice === choice.id && !choiceConfirmed && (
-                <span style={{color:'#00ff66',fontWeight:'bold'}}>Sélectionné</span>
+                <span style={{color:'#00ff66',fontWeight:'bold', fontSize: '11px'}}>Sélectionné</span>
               )}
               {playerChoice === choice.id && choiceConfirmed && (
-                <span style={{color:'#00ff66',fontWeight:'bold'}}>Choix confirmé</span>
+                <span style={{color:'#00ff66',fontWeight:'bold', fontSize: '11px'}}>Choix confirmé</span>
               )}
             </button>
           ))}
@@ -490,23 +525,59 @@ export default function SalleCrise({ sessionId, playerRole, playerId, session, o
     if (globalScore === null) return null;
 
     let message = '';
-    if (globalScore >= 0.7) {
+    let subtitle = '';
+    let funFact = '';
+    
+    if (globalScore >= 0.8) {
+      message = "Colonie parfaitement stable : survie estimée à 120 jours.";
+      subtitle = "Félicitations ! Vous avez réussi l'impossible !";
+      funFact = "Fait amusant : Même les plantes applaudissent votre performance. Littéralement. On a dû les arrêter avant qu'elles ne se fatiguent.";
+    } else if (globalScore >= 0.7) {
+      message = "Colonie très stable : survie estimée à 100 jours.";
+      subtitle = "Excellent travail d'équipe !";
+      funFact = "Conseil du jour : Votre efficacité est si élevée que le manuel de survie demande maintenant VOTRE autographe.";
+    } else if (globalScore >= 0.6) {
       message = "Colonie stable : survie estimée à 80 jours.";
-    } else if (globalScore >= 0.4) {
-      message = "Système instable : ajustements nécessaires.";
+      subtitle = "Bonne coordination !";
+      funFact = "Note du QG : Les autres colonies vous jalousent. Nous avons dû installer des filtres anti-envie sur les communications.";
+    } else if (globalScore >= 0.5) {
+      message = "Système relativement stable : survie estimée à 65 jours.";
+      subtitle = "Pas mal, mais on peut mieux faire...";
+      funFact = "Observation technique : Votre station fonctionne comme une vieille voiture - ça marche, mais on entend des bruits bizarres.";
+    } else if (globalScore >= 0.3) {
+      message = "Système instable : ajustements nécessaires. Survie estimée à 45 jours.";
+      subtitle = "Houston, nous avons un léger problème...";
+      funFact = "Conseil pratique : Commencez à apprendre les signaux de fumée. Juste au cas où.";
+    } else if (globalScore >= 0.1) {
+      message = "Système critique : intervention d'urgence requise. Survie estimée à 30 jours.";
+      subtitle = "Les choses se corsent !";
+      funFact = "Mise à jour du manuel : La section 'Comment survivre avec 3 bouts de ficelle et une prière' vient d'être ajoutée.";
+    } else if (globalScore >= -0.1) {
+      message = "Défaillance majeure détectée : survie compromise à 20 jours.";
+      subtitle = "Alerte rouge ! Tout le monde panique !";
+      funFact = "Note personnelle du directeur : J'ai commencé à rédiger vos nécrologies. Par précaution, bien sûr.";
+    } else if (globalScore >= -0.5) {
+      message = "Catastrophe imminente : survie estimée à 10 jours maximum.";
+      subtitle = "Préparez les canots de sauvetage !";
+      funFact = "Dernière chance : Les paris sont ouverts au QG sur qui survivra le plus longtemps. Actuellement, le cactus de la cafétéria mène.";
     } else {
-      message = "Pollution critique : survie compromise.";
+      message = "Effondrement total du système : évacuation immédiate recommandée.";
+      subtitle = "Game Over, man ! Game Over !";
+      funFact = "Épitaphe suggérée : 'Ils ont essayé. Vraiment. Enfin... pas si fort que ça, finalement.'";
     }
 
     return (
       <div className="resultat-panel">
         <h3>Résultat de l'audit</h3>
         <div className="terminal-output">
-          <pre>
-            {`=== RAPPORT D'AUDIT ===\n\n`}
-            {`Score global : ${(globalScore * 100).toFixed(1)}%\n\n`}
-            {`Diagnostic : ${message}\n\n`}
-            {`=== FIN DU RAPPORT ===`}
+          <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'Consolas, monospace' }}>
+            {`=== RAPPORT D'AUDIT SVALBARD-201 ===\n\n`}
+            {`Score global : ${(globalScore * 100).toFixed(1)}%\n`}
+            {`${subtitle}\n\n`}
+            {`DIAGNOSTIC OFFICIEL :\n${message}\n\n`}
+            {`💬 ${funFact}\n\n`}
+            {`=== [TRANSMISSION TERMINÉE] ===\n`}
+            {`Station Svalbard-201 - "Survie et Innovation dans l'Arctique"`}
           </pre>
         </div>
       </div>
@@ -593,7 +664,7 @@ export default function SalleCrise({ sessionId, playerRole, playerId, session, o
       {showContextPopup && (
         <div className="victory-overlay">
           <div className="victory-card" style={{ maxWidth: '600px', textAlign: 'left', textShadow: 'none', filter: 'none' }}>
-            <h2 style={{ color: '#ff6b6b', marginBottom: '16px', textAlign: 'center', textShadow: 'none', filter: 'none' }}>🚨 RAPPORT LOG - SALLE DE CRISE</h2>
+            <h2 style={{ color: '#ff6b6b', marginBottom: '16px', textAlign: 'center', textShadow: 'none', filter: 'none' }}>RAPPORT LOG - SALLE DE CRISE</h2>
             
             <div style={{ marginBottom: '16px', padding: '12px', background: 'rgba(255,0,0,0.2)', borderRadius: '6px', border: '1px solid #ff6666' }}>
               <strong style={{ color: '#ff9999' }}>SITUATION CRITIQUE :</strong> Défaillances multiples détectées
