@@ -28,7 +28,7 @@ export default function BackgroundMusic({ src, defaultVolume = 0.2 }) {
     <div style={{
       position: "fixed",
       bottom: 20,
-      right: 20,
+      left: 20,
       background: "rgba(0,0,0,0.7)",
       color: "#00ff66",
       padding: "10px 14px",
