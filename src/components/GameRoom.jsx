@@ -226,28 +226,116 @@ useEffect(() => {
     );
   }
 
-  // --- Page finale affichant le score de la salle de crise
-  if (showFinalPage) {
-    return (
-      <div
+if (showFinalPage) {
+  if (globalScore === null) return null;
+
+  const finalScoreText = `${(globalScore * 100).toFixed(1)}%`;
+
+  // Déterminer le message, subtitle et funFact selon le score
+  let message = "";
+  let subtitle = "";
+  let funFact = "";
+
+  if (globalScore >= 0.8) {
+    message = "Colonie parfaitement stable : survie estimée à 120 jours.";
+    subtitle = "Félicitations ! Vous avez réussi l'impossible !";
+    funFact =
+      "Fait amusant : Même les plantes applaudissent votre performance. Littéralement. On a dû les arrêter avant qu'elles ne se fatiguent.";
+  } else if (globalScore >= 0.7) {
+    message = "Colonie très stable : survie estimée à 100 jours.";
+    subtitle = "Excellent travail d'équipe !";
+    funFact =
+      "Conseil du jour : Votre efficacité est si élevée que le manuel de survie demande maintenant VOTRE autographe.";
+  } else if (globalScore >= 0.6) {
+    message = "Colonie stable : survie estimée à 80 jours.";
+    subtitle = "Bonne coordination !";
+    funFact =
+      "Note du QG : Les autres colonies vous jalousent. Votre secret ? Des pauses café plus fréquentes.";
+  } else if (globalScore >= 0.5) {
+    message = "Système relativement stable : survie estimée à 65 jours.";
+    subtitle = "Pas mal, mais on peut mieux faire...";
+    funFact =
+      "Observation technique : Votre station fonctionne comme une vieille voiture - ça marche, mais on entend des bruits bizarres.";
+  } else if (globalScore >= 0.3) {
+    message = "Système instable : ajustements nécessaires. Survie estimée à 45 jours.";
+    subtitle = "Houston, nous avons un léger problème...";
+    funFact = "Conseil pratique : Commencez à apprendre les signaux de fumée. Juste au cas où.";
+  } else if (globalScore >= 0.1) {
+    message = "Système critique : intervention d'urgence requise. Survie estimée à 30 jours.";
+    subtitle = "Les choses se corsent !";
+    funFact =
+      "Mise à jour du manuel : La section 'Comment survivre avec 3 bouts de ficelle et une prière' vient d'être ajoutée.";
+  } else if (globalScore >= -0.1) {
+    message = "Défaillance majeure détectée : survie compromise à 20 jours.";
+    subtitle = "Alerte rouge ! Tout le monde panique !";
+    funFact =
+      "Note personnelle du directeur : J'ai commencé à rédiger vos nécrologies. Par précaution, bien sûr.";
+  } else if (globalScore >= -0.5) {
+    message = "Catastrophe imminente : survie estimée à 10 jours maximum.";
+    subtitle = "Préparez les canots de sauvetage !";
+    funFact =
+      "Dernière chance : Les paris sont ouverts au QG sur qui survivra le plus longtemps. Actuellement, le cactus de la cafétéria mène.";
+  } else {
+    message = "Effondrement total du système : évacuation immédiate recommandée.";
+    subtitle = "Game Over, man ! Game Over !";
+    funFact =
+      "Épitaphe suggérée : 'Ils ont essayé. Vraiment. Enfin... pas si fort que ça, finalement.'";
+  }
+
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "radial-gradient(circle at center, #001a00, #000)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexDirection: "column",
+        color: "#00ff66",
+        fontFamily: "monospace",
+        padding: "40px",
+        textAlign: "center",
+      }}
+    >
+      <h1 style={{ fontSize: "2.8em", marginBottom: "1rem", color: "#00ff66" }}>
+        Mission terminée 🛰️
+      </h1>
+
+      <p style={{ fontSize: "1.5em", marginBottom: "1rem" }}>
+        Score final de la salle de crise :
+      </p>
+
+      <p
         style={{
-          minHeight: "100vh",
-          background: "#000",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexDirection: "column",
-          color: "#00ff66",
+          fontSize: "3em",
+          fontWeight: "bold",
+          color: "#ffcc00",
+          marginBottom: "1.5rem",
         }}
       >
-        <h1 style={{ fontSize: "2.5em", marginBottom: "1rem" }}>Mission terminée !</h1>
-        <p style={{ fontSize: "1.5em", marginBottom: "1rem" }}>Score final de la salle de crise :</p>
-        <p style={{ fontSize: "3em", fontWeight: "bold", color: "#ffcc00" }}>
-          {globalScore !== null ? `${(globalScore * 100).toFixed(1)}%` : "Calcul en cours..."}
-        </p>
+        {finalScoreText}
+      </p>
+
+      <div
+        style={{
+          maxWidth: "700px",
+          background: "rgba(0,0,0,0.7)",
+          border: "2px solid #00ff66",
+          borderRadius: "16px",
+          padding: "20px 30px",
+          boxShadow: "0 0 20px #00ff66",
+          lineHeight: "1.6",
+          fontSize: "1.2em",
+          marginBottom: "1rem",
+        }}
+      >
+        <h2 style={{ marginBottom: "0.5rem", color: "#00ff66" }}>{subtitle}</h2>
+        <p>{message}</p>
+        <em style={{ display: "block", marginTop: "1rem", color: "#ffaa00" }}>{funFact}</em>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   // --- Salle de contrôle et autres salles
   return (
