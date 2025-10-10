@@ -184,10 +184,8 @@ export default function PuzzleEnergy({ sessionId, playerRole, onWin, players, pl
       triggerBlackout();
       return;
     }
-    const heat = Number(state.power?.heat || 0);
-    const pump = Number(state.power?.pump || 0);
-    const serre = Number(state.power?.serre || 0);
-    if (total === 9 && heat >= 3 && pump >= 3 && serre >= 3) {
+    // Condition de victoire simplifiée : puissance totale = 9kW exactement
+    if (total === 9) {
       if (!state.solved) {
         update(ref(db, energyRefPath), { solved: true });
         pushLog("Succès : réseau électrique stabilisé à 9 kW");
