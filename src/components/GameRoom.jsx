@@ -167,7 +167,7 @@ useEffect(() => {
   const isHost = session.host === playerId;
 
   // --- Vidéo finale après les 6 modules
-  if (showEndVideo) {
+  if (showEndVideo && globalScore > 0) {
     return (
       <div
         style={{
@@ -281,11 +281,16 @@ if (showFinalPage) {
     funFact =
       "Épitaphe suggérée : 'Ils ont essayé. Vraiment. Enfin... pas si fort que ça, finalement.'";
   }
+    const backgroundImage = globalScore < 0 ? "/backgrounds/lose.png" : "none";
+
 
   return (
     <div
       style={{
         minHeight: "100vh",
+        backgroundImage: backgroundImage !== "none" ? `url(${backgroundImage})` : "none",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
         background: "radial-gradient(circle at center, #001a00, #000)",
         display: "flex",
         alignItems: "center",
@@ -295,6 +300,7 @@ if (showFinalPage) {
         fontFamily: "monospace",
         padding: "40px",
         textAlign: "center",
+
       }}
     >
       <h1 style={{ fontSize: "2.8em", marginBottom: "1rem", color: "#00ff66" }}>
